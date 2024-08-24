@@ -33,24 +33,6 @@ If you find this tool useful, please consider supporting us:
 - **[Styled-components](https://styled-components.com/)**: For styling the application.
 - **[Lodash](https://lodash.com/)**: For utility functions and data manipulation.
 
-## Installation
-
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/truongthang2211/RPGSaveEditor.git
-    cd RPGSaveEditor
-    ```
-
-2. Install dependencies:
-    ```bash
-    npm install
-    ```
-
-3. Build the Tauri app:
-    ```bash
-    npm run tauri build
-    ```
-
 ## Usage
 
 1. Launch the application.
