@@ -58,6 +58,15 @@ If you find this tool useful, please consider supporting us:
 3. Edit the desired data using the available sections in the sidebar.
 4. Save your changes or reload the file if needed.
 
+## Download
+
+You can download the latest release of RPG Save Editor from the [Releases](https://github.com/truongthang2211/RPGSaveEditor/releases) page. The release includes:
+
+- A standalone executable file (`.exe`) for users who already have the necessary dependencies installed.
+- A setup installer (`setup.exe`) for users who may need to install additional dependencies.
+
+If the standalone `.exe` file does not run on your system, please use the `setup.exe` to install the required software and try again.
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
