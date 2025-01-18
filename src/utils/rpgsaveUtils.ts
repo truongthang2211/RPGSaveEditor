@@ -1,16 +1,17 @@
 import LZString from 'lz-string';
+import { RPGSave } from '../types/RPGSave';
 
 /**
  * Giải nén và phân tích dữ liệu từ file .rpgsave
  * @param {string} save - Dữ liệu mã hóa base64
  * @returns {string} - Dữ liệu JSON đã giải nén và định dạng
  */
-export function decodeRpgsave(save: string): string {
+export function decodeRpgsave(save: string): RPGSave {
   try {
     const decoded = LZString.decompressFromBase64(save);
     if (!decoded) throw new Error('Failed to decompress data');
     const parsed = JSON.parse(decoded);
-    return JSON.stringify(parsed, null, 4); // Định dạng JSON đẹp hơn
+    return parsed; // Định dạng JSON đẹp hơn
   } catch (error) {
     console.error('Error decoding .rpgsave file:', error);
     throw error;

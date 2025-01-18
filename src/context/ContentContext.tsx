@@ -1,21 +1,26 @@
 import React, { createContext, useState, ReactNode } from 'react';
+import { WeaponData } from '../types/Weapon';
+import { ItemData } from '../types/Item';
+import { SystemData } from '../types/System';
+import { ArmorData } from '../types/Armo';
+import { SaveData } from '../types/SaveData';
 
 // Define interfaces for Content and ContentContext
 export interface ContentType {
-  saveData?: any;
-  originSaveData?: any;
-  oldSaveData?: any;
-  itemData?: any;
-  weaponsData?: any;
-  armorsData?: any;
-  systemData?: any;
+  saveData?: SaveData ;
+  originSaveData?: SaveData;
+  oldSaveData?: SaveData;
+  itemData?: (ItemData | null)[];
+  weaponsData?: (WeaponData | null)[];
+  armorsData?: (ArmorData | null)[];
+  systemData?: SystemData;
   filePath?: string;
   fileName?: string;
   gameName?: string;
 }
 
 interface ContentContextType {
-  content: ContentType | any;
+  content: ContentType;
   setContent: (content: ContentType | any) => void;
 }
 

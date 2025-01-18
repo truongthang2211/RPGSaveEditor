@@ -13,7 +13,7 @@ import {
 } from '../styles/ItemsContentStyles';
 import Tooltip from './Tooltip';
 import { useInView } from 'react-intersection-observer';
-
+import { WeaponData } from '../types/Weapon';
 // Khai báo kiểu dữ liệu cho các mục
 interface Item {
   id: string | number;
@@ -44,10 +44,10 @@ const WeaponsContent: React.FC = () => {
       setVisibleItems((prevVisibleItems) => prevVisibleItems + 500);
     }
   }, [inView]);
-  const itemsOfPlayerOrigin = content.originSaveData?.party?._weapons || {};
-
-  const itemsOfPlayer = content.saveData?.party?._weapons || {};
-  const itemsOfPlayerOld = content.oldSaveData?.party?._weapons || {};
+  const itemsOfPlayerOrigin = (content.originSaveData?.party?._weapons || {}) as Record<number, number>;
+  console.log(content);
+  const itemsOfPlayer = (content.saveData?.party?._weapons || {}) as Record<number, number>;
+  const itemsOfPlayerOld = (content.oldSaveData?.party?._weapons || {}) as Record<number, number>;
 
   const handleQuantityChange = useCallback((id: number, value: number) => {
     const newQuantities = { ...itemsOfPlayer, [id]: value };
@@ -56,7 +56,9 @@ const WeaponsContent: React.FC = () => {
   }, [itemsOfPlayer, content, setContent]);
 
   // Tính toán giá trị `quantity`, `oldQuantity`, và `gap` trước khi sắp xếp
-  const items: Item[] = (content.weaponsData || []).map((item: { id: string | number; name: string; }) => {
+  const items: Item[] = (content.weaponsData || []).map((item: WeaponData | null) => {
+    if (!item) return { id: 0, name: '', quantity: 0, oldQuantity: 0, gap: 0 }; // Handle null case
+
     const quantity = itemsOfPlayer[item?.id] || 0;
     const quantityOrigin = itemsOfPlayerOrigin[item?.id] || 0;
     const oldQuantity = itemsOfPlayerOld[item?.id] || 0;

@@ -13,6 +13,7 @@ import {
 } from '../styles/ItemsContentStyles';
 import Tooltip from './Tooltip';
 import { useInView } from 'react-intersection-observer';
+import { ItemData } from '../types/Item';
 
 // Khai báo kiểu dữ liệu cho các mục
 interface Item {
@@ -46,10 +47,9 @@ const ItemsContent: React.FC = () => {
   }, [inView]);
 
   
-  const itemsOfPlayerOrigin = content.originSaveData?.party?._items || {};
-
-  const itemsOfPlayer = content.saveData?.party?._items || {};
-  const itemsOfPlayerOld = content.oldSaveData?.party?._items || {};
+  const itemsOfPlayerOrigin = (content.originSaveData?.party?._items || {}) as Record<number, number>;
+  const itemsOfPlayer = (content.saveData?.party?._items || {}) as Record<number, number>;
+  const itemsOfPlayerOld = (content.oldSaveData?.party?._items || {}) as Record<number, number>;
 
   const handleQuantityChange = useCallback((id: number, value: number) => {
     const newQuantities = { ...itemsOfPlayer, [id]: value };
@@ -58,7 +58,8 @@ const ItemsContent: React.FC = () => {
   }, [itemsOfPlayer, content, setContent]);
 
   // Tính toán giá trị `quantity`, `oldQuantity`, và `gap` trước khi sắp xếp
-  const items: Item[] = (content.itemData || []).map((item: { id: string | number; name: string; }) => {
+  const items: Item[] = (content.itemData || []).map((item: ItemData | null) => {
+    if (!item) return { id: 0, name: '', quantity: 0, oldQuantity: 0, gap: 0 }; // Handle null case
     const quantity = itemsOfPlayer[item?.id] || 0;
     const quantityOrigin = itemsOfPlayerOrigin[item?.id] || 0;
     const oldQuantity = itemsOfPlayerOld[item?.id] || 0;

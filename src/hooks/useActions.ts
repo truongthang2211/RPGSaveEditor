@@ -3,57 +3,52 @@ import { ContentType, useContent } from '../context/ContentContext';
 import { readFile, selectFile, writeFile } from '../utils/fileUtils';
 import { decodeRpgsave, encodeRpgsave } from '../utils/rpgsaveUtils';
 import { toast } from 'react-toastify';
-
+import { rpgSaveToSaveData } from '../utils/saveDataUtils';
+import { RPGSave } from '../types/RPGSave';
 export const useFileUpload = () => {
   const { content, setContent } = useContent();
 
   const handleReadFile = useCallback(async (filePath: string) => {
     try {
       const fileContent = await readFile(filePath);
-      const decodedContent = decodeRpgsave(fileContent);
-      const gameName = getNameOfGame(filePath)
+      if (!filePath.endsWith('.rpgsave')) {
+        return errorNotify('Invalid file type! Please upload a .rpgsave file.');
+      }
+
+      const decodedContent: RPGSave = decodeRpgsave(fileContent);
+      const decodedContent2: RPGSave = decodeRpgsave(fileContent);
+      const gameName = getNameOfGame(filePath);
 
       const contentData: ContentType = {
         ...content,
-
-        oldSaveData: gameName != content?.gameName ? {} : (content?.originSaveData || {}),
-        saveData: JSON.parse(decodedContent),
-        originSaveData: JSON.parse(decodedContent),
+        oldSaveData: gameName !== content?.gameName ? undefined : content?.originSaveData,
+        saveData: rpgSaveToSaveData(decodedContent),
+        originSaveData: rpgSaveToSaveData(decodedContent2),
         fileName: filePath.split('\\').pop() || '',
+        filePath,
+        gameName,
+        itemData: await loadJsonData(filePath, 'Items'),
+        systemData: await loadJsonData(filePath, 'System'),
+        weaponsData: await loadJsonData(filePath, 'Weapons'),
+        armorsData: await loadJsonData(filePath, 'Armors'),
       };
 
-      // Get Items Data
-      const itemFilePath = getFileFilePath(filePath, 'Items');
-      contentData.itemData = JSON.parse(await readFile(itemFilePath));
-
-      // Get System Data
-      const sysFilePath = getFileFilePath(filePath, 'System');
-      contentData.systemData = JSON.parse(await readFile(sysFilePath));
-
-      // Get Weapons Data
-      const weaponsFilePath = getFileFilePath(filePath, 'Weapons');
-      contentData.weaponsData = JSON.parse(await readFile(weaponsFilePath));
-
-      // Get Armors Data
-      const armorsFilePath = getFileFilePath(filePath, 'Armors');
-      contentData.armorsData = JSON.parse(await readFile(armorsFilePath));
-
-
-      contentData.filePath = filePath
-      contentData.gameName = gameName
       setContent(contentData);
     } catch (error) {
-      errorNotify('Error processing file! \n' + error)
-
+      errorNotify(`Error processing file! \n${error}`);
     }
   }, [content, setContent]);
+
+  const loadJsonData = async (filePath: string, fileName: string) => {
+    const path = getFileFilePath(filePath, fileName);
+    return JSON.parse(await readFile(path));
+  };
 
   const uploadFile = useCallback(async () => {
     const filePath = await selectFile();
     if (filePath) {
       await handleReadFile(filePath);
     }
-    console.log('Upload file triggered');
   }, [handleReadFile]);
 
   return uploadFile;
@@ -64,25 +59,20 @@ export const useReload = () => {
 
   const handleReadFile = useCallback(async (filePath: string) => {
     try {
-
       const fileContent = await readFile(filePath);
-      const decodedContent = decodeRpgsave(fileContent);
-      // console.log(JSON.stringify(content));
-
-
-      setContent((prev: any) => {
-        console.log(JSON.stringify(prev.filePath));
-
-        const contentData: ContentType = { ...prev }
-
-        contentData.oldSaveData = contentData?.originSaveData || {}
-        contentData.saveData = JSON.parse(decodedContent);
-        contentData.originSaveData = JSON.parse(decodedContent);
-        return contentData
-      });
-      successNotify('File Reloaded!')
+      if (filePath.endsWith('.rpgsave')) {
+        const decodedContent: RPGSave = decodeRpgsave(fileContent);
+        const decodedContent2: RPGSave = decodeRpgsave(fileContent);
+        setContent((prev: any) => ({
+          ...prev,
+          oldSaveData: prev?.originSaveData || undefined,
+          saveData: rpgSaveToSaveData(decodedContent),
+          originSaveData: rpgSaveToSaveData(decodedContent2),
+        }));
+      }
+      successNotify('File Reloaded!');
     } catch (error) {
-      errorNotify('Error Reloading File Save! \n' + error)
+      errorNotify(`Error Reloading File Save! \n${error}`);
     }
   }, [setContent]);
 
