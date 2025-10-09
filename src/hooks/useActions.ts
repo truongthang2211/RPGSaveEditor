@@ -3,6 +3,7 @@ import { ContentType, useContent } from '../context/ContentContext';
 import { readFile, selectFile, writeFile } from '../utils/fileUtils';
 import { decodeRpgsave, encodeRpgsave } from '../utils/rpgsaveUtils';
 import { toast } from 'react-toastify';
+import { basename, dirname, join as pathJoin } from '@tauri-apps/api/path';
 
 export const useFileUpload = () => {
   const { content, setContent } = useContent();
@@ -11,7 +12,7 @@ export const useFileUpload = () => {
     try {
       const fileContent = await readFile(filePath);
       const decodedContent = decodeRpgsave(fileContent);
-      const gameName = getNameOfGame(filePath)
+      const gameName = await getNameOfGame(filePath)
 
       const contentData: ContentType = {
         ...content,
@@ -19,23 +20,23 @@ export const useFileUpload = () => {
         oldSaveData: gameName != content?.gameName ? {} : (content?.originSaveData || {}),
         saveData: JSON.parse(decodedContent),
         originSaveData: JSON.parse(decodedContent),
-        fileName: filePath.split('\\').pop() || '',
+        fileName: await basename(filePath)
       };
 
       // Get Items Data
-      const itemFilePath = getFileFilePath(filePath, 'Items');
+      const itemFilePath = await getFileFilePath(filePath, 'Items.json');
       contentData.itemData = JSON.parse(await readFile(itemFilePath));
 
       // Get System Data
-      const sysFilePath = getFileFilePath(filePath, 'System');
+      const sysFilePath = await getFileFilePath(filePath, 'System.json');
       contentData.systemData = JSON.parse(await readFile(sysFilePath));
 
       // Get Weapons Data
-      const weaponsFilePath = getFileFilePath(filePath, 'Weapons');
+      const weaponsFilePath = await getFileFilePath(filePath, 'Weapons.json');
       contentData.weaponsData = JSON.parse(await readFile(weaponsFilePath));
 
       // Get Armors Data
-      const armorsFilePath = getFileFilePath(filePath, 'Armors');
+      const armorsFilePath = await getFileFilePath(filePath, 'Armors.json');
       contentData.armorsData = JSON.parse(await readFile(armorsFilePath));
 
 
@@ -119,27 +120,20 @@ export const useSave = () => {
 };
 
 
-function getFileFilePath(originalPath: string, fileName: string): string {
-  // Tách phần đường dẫn và tên file
-  const pathParts = originalPath.split('\\');
-  const fileNameWithExt = pathParts.pop(); // 'file1.rpgsave'
-  pathParts.pop();
-  const folderPath = pathParts.join('\\'); // 'D:\Gamess\AmongUs\Winter Memories (Kagura v1.08)\www'
+async function getFileFilePath(originalPath: string, fileName: string): Promise<string> {
+  // Get filename and its directory
+  const fileNameWithExt = await basename(originalPath); // 'file1.rpgsave'
+  const folderPath = await dirname(await dirname(originalPath)); // 'D:\Gamess\AmongUs\Winter Memories (Kagura v1.08)\www'
 
   if (fileNameWithExt) {
-    const newFilePath = `${folderPath}\\data\\${fileName}.json`; // Đường dẫn mới
-
-    return newFilePath;
+    return pathJoin(folderPath, "data", fileName); // Create new path
   }
 
   throw new Error('Invalid file path');
 }
-function getNameOfGame(originalPath: string): string {
-  const pathParts = originalPath.split('\\');
-  pathParts.pop() // 'file1.rpgsave'
-  pathParts.pop() // 'save'
-  pathParts.pop() // 'www'
-  const gameName = pathParts.pop();
+async function getNameOfGame(originalPath: string): Promise<string> {
+  // First dirname gets "data", then "www". Finally basename gives us Game's name.
+  const gameName = await basename(await dirname(await dirname(originalPath)))
   console.log(gameName);
 
   if (gameName) {
