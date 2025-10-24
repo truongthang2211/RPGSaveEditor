@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { ContentType, useContent } from '../context/ContentContext';
 import { readFile, selectFile, writeFile } from '../utils/fileUtils';
+import { exists } from '@tauri-apps/api/fs';
 import { decodeRpgsave, encodeRpgsave } from '../utils/rpgsaveUtils';
 import { toast } from 'react-toastify';
 import { rpgSaveToSaveData } from '../utils/saveDataUtils';
@@ -39,9 +40,37 @@ export const useFileUpload = () => {
     }
   }, [content, setContent]);
 
-  const loadJsonData = async (filePath: string, fileName: string) => {
+ const loadJsonData = async (filePath: string, fileName: string) => {
     const path = getFileFilePath(filePath, fileName);
-    return JSON.parse(await readFile(path));
+    
+    // Check if file exists
+    try {
+      const fileExists = await exists(path);
+      if (!fileExists) {
+        warningNotify(`Missing JSON file: ${path}`);
+        return null;
+      }
+    } catch (e) {
+      console.error('Failed to check file existence for', path, e);
+      return null;
+    }
+
+    try {
+      let fileContent = await readFile(path);
+      
+      // Remove BOM if present
+      fileContent = fileContent.replace(/^\uFEFF/, '');
+      
+      // Remove control characters (except newline, tab, carriage return)
+      fileContent = fileContent.replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F]/g, '');
+      
+      return JSON.parse(fileContent);
+
+    } catch (error) {
+      console.error('Failed to parse JSON from', fileName);
+      warningNotify(`Failed to load JSON data from ${fileName}: ${error}`);
+      return null;
+    }
   };
 
   const uploadFile = useCallback(async () => {
@@ -135,8 +164,8 @@ function getNameOfGame(originalPath: string): string {
   if (gameName) {
     return gameName;
   }
-
-  throw new Error('Invalid file path');
+  warningNotify('Could not determine game name from file path.');
+  return 'Unknown Game';
 }
 const successNotify = (text: string) => {
   toast.success(text, {
@@ -150,6 +179,17 @@ const successNotify = (text: string) => {
 };
 const errorNotify = (text: string) => {
   toast.error(text, {
+    position: "bottom-right",
+    autoClose: 4000,
+    hideProgressBar: true,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+  });
+};
+
+const warningNotify = (text: string) => {
+  toast.warn(text, {
     position: "bottom-right",
     autoClose: 4000,
     hideProgressBar: true,

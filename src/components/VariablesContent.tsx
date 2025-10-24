@@ -20,7 +20,7 @@ interface Item {
   name: string;
   quantity: number;
   oldQuantity: number;
-  gap: number;
+  gap: number | string;
 }
 
 const VariablesContent: React.FC = () => {
@@ -59,22 +59,42 @@ const VariablesContent: React.FC = () => {
   }, [itemsOfPlayer, content, setContent]);
 
   const items: Item[] = useMemo(() => {
-    return (content?.systemData?.variables || []).map((item: string, ind: number) => {
-      const quantity = itemsOfPlayer[ind] || 0;
-      const quantityOrigin = itemsOfPlayerOrigin[ind] || 0;
-      const oldQuantity = itemsOfPlayerOld[ind] || 0;
-      const gap = Number.isNaN(quantityOrigin - oldQuantity)
-        ? getDifferences(quantityOrigin.toString(), oldQuantity.toString())
-        : (quantityOrigin - oldQuantity);
+    const variables = content?.systemData?.variables || [];
+    
+    return (variables && variables.length > 0
+      ? variables.map((item: string | null, ind: number) => {
+          const quantity = itemsOfPlayer[ind] || 0;
+          const quantityOrigin = itemsOfPlayerOrigin[ind] || 0;
+          const oldQuantity = itemsOfPlayerOld[ind] || 0;
+          const gap = Number.isNaN(quantityOrigin - oldQuantity)
+            ? getDifferences(quantityOrigin.toString(), oldQuantity.toString())
+            : (quantityOrigin - oldQuantity);
 
-      return {
-        id: ind,
-        name: item,
-        quantity,
-        oldQuantity,
-        gap,
-      };
-    }).filter((item: Item) => {
+          return {
+            id: ind,
+            name: item || '',
+            quantity,
+            oldQuantity,
+            gap,
+          };
+        })
+      : Object.entries(itemsOfPlayer).map(([key, quantity]) => {
+          const ind = Number(key);
+          const quantityOrigin = itemsOfPlayerOrigin[ind] || 0;
+          const oldQuantity = itemsOfPlayerOld[ind] || 0;
+          const gap = Number.isNaN(quantityOrigin - oldQuantity)
+            ? getDifferences(quantityOrigin.toString(), oldQuantity.toString())
+            : (quantityOrigin - oldQuantity);
+
+          return {
+            id: ind,
+            name: `Variable#${key}`,
+            quantity: quantity || 0,
+            oldQuantity,
+            gap,
+          };
+        })
+    ).filter((item: Item) => {
       const matchesId = item.id.toString().includes(searchId);
       const matchesName = item.name.toLowerCase().includes(searchName.toLowerCase());
       const matchesQuantity = item.quantity.toString().includes(searchQuantity);
@@ -93,7 +113,6 @@ const VariablesContent: React.FC = () => {
       }
     });
   }, [content, itemsOfPlayer, itemsOfPlayerOrigin, itemsOfPlayerOld, searchId, searchName, searchQuantity, searchOldQuantity, searchGap, sortColumn, sortDirection]);
-
 
   const handleSort = (column: keyof Item) => {
     setSortColumn(column as string);

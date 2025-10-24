@@ -49,19 +49,33 @@ const SwitchesContent: React.FC = () => {
   const oldSwitchesState = content.oldSaveData?.switches?._data['@a'] || []; // Trạng thái cũ của các switch
 
   // Tạo mảng Switch với id, name, state, oldState, và gap
-  const switchData: Switch[] = switches.map((item: string, index: number) => {
-    const state = switchesState[index];
-    const oldState = oldSwitchesState[index] ? '1' : oldSwitchesState[index] === false ? '0' : '-';
-    const gap = oldSwitchesState[index] != null ? (switchesStateOrigin[index] === oldSwitchesState[index] ? '0' : '1') : '-';
+  const switchData: (Switch)[] = (switches && switches.length > 0
+    ? switches.map((item: string | null, index: number) => {
+        const state = switchesState[index];
+        const oldState = oldSwitchesState[index] ? '1' : oldSwitchesState[index] === false ? '0' : '-';
+        const gap = oldSwitchesState[index] != null ? (switchesStateOrigin[index] === oldSwitchesState[index] ? '0' : '1') : '-';
 
-    return {
-      id: index,
-      name: item,
-      state,
-      oldState,
-      gap
-    };
-  });
+        return {
+          id: index,
+          name: item || '',
+          state,
+          oldState,
+          gap
+        };
+      })
+    : switchesState.map((state: boolean, index: number) => {
+        const oldState = oldSwitchesState[index] ? '1' : oldSwitchesState[index] === false ? '0' : '-';
+        const gap = oldSwitchesState[index] != null ? (switchesStateOrigin[index] === oldSwitchesState[index] ? '0' : '1') : '-';
+
+        return {
+          id: index,
+          name: `Switch#${index}`,
+          state,
+          oldState,
+          gap
+        };
+      })
+  );
 
   const handleSwitchChange = useCallback((id: number, state: boolean) => {
     const newState = [...switchesState];

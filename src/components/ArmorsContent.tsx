@@ -58,20 +58,37 @@ const ArmorsContent: React.FC = () => {
   }, [itemsOfPlayer, content, setContent]);
 
   // Tính toán giá trị `quantity`, `oldQuantity`, và `gap` trước khi sắp xếp
-  const items: Item[] = (content.armorsData || []).map((item: ArmorData | null) => {
-    if (!item) return { id: 0, name: '', quantity: 0, oldQuantity: 0, gap: 0 }; // Handle null case
-    const quantity = itemsOfPlayer[item.id] || 0;
-    const quantityOrigin = itemsOfPlayerOrigin[item.id] || 0;
-    const oldQuantity = itemsOfPlayerOld[item?.id] || 0;
-    const gap = quantityOrigin - oldQuantity;
+  const items: Item[] = (content.armorsData && content.armorsData.length > 0
+    ? content.armorsData.map((item: ArmorData | null) => {
+        if (!item) return { id: 0, name: '', quantity: 0, oldQuantity: 0, gap: 0 }; // Handle null case
+        const quantity = itemsOfPlayer[item.id] || 0;
+        const quantityOrigin = itemsOfPlayerOrigin[item.id] || 0;
+        const oldQuantity = itemsOfPlayerOld[item?.id] || 0;
+        const gap = quantityOrigin - oldQuantity;
 
-    return {
-      ...item,
-      quantity,
-      oldQuantity,
-      gap
-    };
-  }).filter((item: Item) => {
+        return {
+          ...item,
+          quantity,
+          oldQuantity,
+          gap
+        };
+      })
+    : Object.entries(itemsOfPlayer).map(([key, quantity]) => {
+        const id = Number(key);
+        const quantityOrigin = itemsOfPlayerOrigin[id] || 0;
+        const oldQuantity = itemsOfPlayerOld[id] || 0;
+        const gap = quantityOrigin - oldQuantity;
+
+        return {
+          id: Number(key) || key,
+          name: `Armor#${key}`,
+          description: '',
+          quantity: quantity || 0,
+          oldQuantity,
+          gap
+        };
+      })
+  ).filter((item: Item) => {
     const matchesId = item?.id?.toString().includes(searchId);
     const matchesName = item?.name?.toLowerCase().includes(searchName.toLowerCase());
     const matchesQuantity = item.quantity.toString().includes(searchQuantity);
