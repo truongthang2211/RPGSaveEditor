@@ -1,29 +1,15 @@
 {
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+  "productName": "rpgsaveeditor",
+  "version": "1.0.0",
+  "identifier": "com.tauri.build",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist"
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
   },
-  "package": {
-    "productName": "rpgsaveeditor",
-    "version": "1.0.0"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "dialog": {
-        "all": true
-      },
-      "fs": {
-        "all": true,
-        "scope": ["**"]
-      },
-      "shell": {
-        "all": false,
-        "open": true
-      }
-    },
+  "app": {
     "windows": [
       {
         "title": "RPG Save Editor",
@@ -33,17 +19,24 @@
     ],
     "security": {
       "csp": null
-    },
-    "bundle": {
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/icons8-edit-32.png",
+      "icons/icons8-edit-64.png",
+      "icons/icons8-edit-128.png",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "updater": {
       "active": true,
-      "targets": "all",
-      "identifier": "com.tauri.build",
-      "icon": [
-        "icons/icons8-edit-32.png",
-        "icons/icons8-edit-64.png",
-        "icons/icons8-edit-128.png",
-        "icons/icon.ico"
-      ]
+      "endpoints": ["https://example.com/releases.json"],
+      "pubkey": "YOUR_PUBLIC_KEY_HERE"
     }
   }
+
 }

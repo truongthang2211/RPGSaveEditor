@@ -1,11 +1,14 @@
 import { useCallback } from 'react';
 import { ContentType, useContent } from '../context/ContentContext';
 import { readFile, selectFile, writeFile } from '../utils/fileUtils';
-import { exists } from '@tauri-apps/api/fs';
+import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { decodeRpgsave, encodeRpgsave } from '../utils/rpgsaveUtils';
 import { toast } from 'react-toastify';
 import { rpgSaveToSaveData } from '../utils/saveDataUtils';
 import { RPGSave } from '../types/RPGSave';
+import { dirname, join } from '@tauri-apps/api/path';
+
+
 export const useFileUpload = () => {
   const { content, setContent } = useContent();
 
@@ -41,10 +44,10 @@ export const useFileUpload = () => {
   }, [content, setContent]);
 
  const loadJsonData = async (filePath: string, fileName: string) => {
-    const path = getFileFilePath(filePath, fileName);
-    
-    // Check if file exists
-    try {
+   let path;
+   // Check if file exists
+   try {
+      path = await getJsonFilePath(filePath, fileName);
       const fileExists = await exists(path);
       if (!fileExists) {
         warningNotify(`Missing JSON file: ${path}`);
@@ -56,7 +59,7 @@ export const useFileUpload = () => {
     }
 
     try {
-      let fileContent = await readFile(path);
+      let fileContent = await readTextFile(path);
       
       // Remove BOM if present
       fileContent = fileContent.replace(/^\uFEFF/, '');
@@ -138,21 +141,20 @@ export const useSave = () => {
 };
 
 
-function getFileFilePath(originalPath: string, fileName: string): string {
-  // Tách phần đường dẫn và tên file
-  const pathParts = originalPath.split('\\');
-  const fileNameWithExt = pathParts.pop(); // 'file1.rpgsave'
-  pathParts.pop();
-  const folderPath = pathParts.join('\\'); // 'D:\Gamess\AmongUs\Winter Memories (Kagura v1.08)\www'
-
-  if (fileNameWithExt) {
-    const newFilePath = `${folderPath}\\data\\${fileName}.json`; // Đường dẫn mới
-
-    return newFilePath;
+const getJsonFilePath = async (originalPath: string, fileName: string): Promise<string> => {
+  try {
+    // Get the parent directory of the .rpgsave file (e.g. 'D:\Gamess\AmongUs\Winter Memories (Kagura v1.08)\www')
+    const saveDir = await dirname(originalPath);
+    const wwwDir = await dirname(saveDir);
+    // Join: wwwDir + '/data' + fileName.json (cross-platform)
+    const jsonPath = await join(wwwDir, 'data', `${fileName}.json`);
+    
+    return jsonPath;
+  } catch (error) {
+    warningNotify(`Could not get JSON path: ${fileName}.json`);
+    throw error; // rethrow the error
   }
-
-  throw new Error('Invalid file path');
-}
+};
 function getNameOfGame(originalPath: string): string {
   const pathParts = originalPath.split('\\');
   pathParts.pop() // 'file1.rpgsave'
