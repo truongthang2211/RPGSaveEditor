@@ -1,0 +1,11 @@
+{
+  "version": "1.1.0",
+  "notes": "Fix some JSON that cannot parse correctly. \n Still can load save file when some JSON file is missing like: Items, Armor, System, Weapons. \n Add update feature.",
+  "pub_date": "2025-10-25T13:00:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTN1gxbDc5b040QVowajFtRXhTRzIzMWR5YnVkcDBjM1B4MThwUHoxQzdvZWsxWGkzeXVrRVFPOEV2UjQ3ZXdEc0E0UVZmdm5hdEdnOHpFZ0VIZGR2dmZ1Y1RHRlFiVVFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzYxMzc1NTMzCWZpbGU6cnBnc2F2ZWVkaXRvcl8xLjEuMF94NjQtc2V0dXAuZXhlCkt6cnJWSkl3MHl6SEM4UGp3eUM5YmlPbHlBR2RoNWpKZWQzekxTSm55ZGd0Sy9oaTVLQSs5dUFjdjJjbkVuRHlFeVFHYUZIK2JIMUkwSk5yOWp3TUFnPT0K",
+      "url": "https://github.com/truongthang2211/RPGSaveEditor/releases/download/v1.1.0/rpgsaveeditor.msi"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "productName": "rpgsaveeditor",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "identifier": "com.tauri.build",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -29,13 +29,17 @@
       "icons/icons8-edit-64.png",
       "icons/icons8-edit-128.png",
       "icons/icon.ico"
-    ]
+    ],
+    "createUpdaterArtifacts": true
   },
   "plugins": {
     "updater": {
+      "windows": {
+        "installMode": "passive"
+      },
       "active": true,
-      "endpoints": ["https://example.com/releases.json"],
-      "pubkey": "YOUR_PUBLIC_KEY_HERE"
+      "endpoints": ["https://raw.githubusercontent.com/truongthang2211/RPGSaveEditor/main/latest.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE3ODgzRjY3QjU5NUZCQgpSV1M3WDFsNzlvTjRBZGJjOXRDSFhoMC9xWHN6RmE5WVFkK1FITk5sMjEzUEJ4Q3hDUEp1bE9nQgo="
     }
   }
 
