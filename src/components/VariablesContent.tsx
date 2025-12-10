@@ -44,9 +44,27 @@ const VariablesContent: React.FC = () => {
     }
   }, [inView]);
 
-  const itemsOfPlayerOrigin = content.originSaveData?.variables?._data['@a'] || [];
-  const itemsOfPlayer = content.saveData?.variables?._data['@a'] || [];
-  const itemsOfPlayerOld = content.oldSaveData?.variables?._data['@a'] || [];
+  // Helper function to normalize variables data (handles both @a array and object formats)
+  const normalizeVariablesData = (data: any) => {
+    if (Array.isArray(data)) {
+      // If it's an array (from @a structure), convert to object
+      return data.reduce((acc, val, idx) => {
+        acc[idx] = val;
+        return acc;
+      }, {} as Record<number, any>);
+    }
+    return data || {};
+  };
+
+  const itemsOfPlayerOrigin = normalizeVariablesData(
+    content.originSaveData?.variables?._data?.['@a'] || content.originSaveData?.variables?._data
+  );
+  const itemsOfPlayer = normalizeVariablesData(
+    content.saveData?.variables?._data?.['@a'] || content.saveData?.variables?._data
+  );
+  const itemsOfPlayerOld = normalizeVariablesData(
+    content.oldSaveData?.variables?._data?.['@a'] || content.oldSaveData?.variables?._data
+  );
 
   const handleQuantityChange = useCallback((id: number, value: number | string) => {
     const normalizedValue = typeof value === 'string' && !isNaN(Number(value))
@@ -54,7 +72,12 @@ const VariablesContent: React.FC = () => {
       : value;
 
     const newQuantities = { ...itemsOfPlayer, [id]: normalizedValue };
-    const updatedContent = _.set({ ...content }, 'saveData.variables._data.@a', newQuantities);
+    // Save to the appropriate location based on current structure
+    const variablesData = content.saveData?.variables?._data;
+    const path = Array.isArray(variablesData?.['@a']) 
+      ? 'saveData.variables._data.@a'
+      : 'saveData.variables._data';
+    const updatedContent = _.set({ ...content }, path, Array.isArray(variablesData?.['@a']) ? Object.values(newQuantities) : newQuantities);
     setContent(updatedContent);
   }, [itemsOfPlayer, content, setContent]);
 
