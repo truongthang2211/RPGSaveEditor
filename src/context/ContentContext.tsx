@@ -4,6 +4,7 @@ import { ItemData } from '../types/Item';
 import { SystemData } from '../types/System';
 import { ArmorData } from '../types/Armo';
 import { SaveData } from '../types/SaveData';
+import { SaveCodec } from '../utils/rpgsaveUtils';
 
 // Define interfaces for Content and ContentContext
 export interface ContentType {
@@ -17,6 +18,7 @@ export interface ContentType {
   filePath?: string;
   fileName?: string;
   gameName?: string;
+  saveCodec?: SaveCodec;
 }
 
 interface ContentContextType {
