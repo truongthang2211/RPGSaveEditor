@@ -14,7 +14,7 @@ function tryLzString(save: string): RPGSave | null {
   }
 }
 
-function binaryStringToBytes(save: string): Uint8Array {
+function binaryStringToBytes(save: string): Uint8Array<ArrayBuffer> {
   const compressed = new Uint8Array(save.length);
   for (let i = 0; i < save.length; i++) {
     compressed[i] = save.charCodeAt(i) & 0xff;
