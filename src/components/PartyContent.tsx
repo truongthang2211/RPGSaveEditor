@@ -44,7 +44,7 @@ const PartyContent: React.FC = () => {
   const renderBonus = (actor: ActorView) =>
     actor.paramPlus.map((value, i) => (
       <BonusItem key={i}>
-        <BonusLabel>Bonus {BONUS_LABELS[i]}:</BonusLabel>
+        <BonusLabel>Bonus {actor.paramLabels?.[i] ?? BONUS_LABELS[i]}:</BonusLabel>
         <BonusInput
           type="number"
           value={value}
@@ -58,7 +58,7 @@ const PartyContent: React.FC = () => {
       const id = `${field}-${actor.slot}`;
       return (
         <StatItem key={field}>
-          <StatLabel htmlFor={id}>{label}:</StatLabel>
+          <StatLabel htmlFor={id}>{actor.statLabels?.[field] ?? label}:</StatLabel>
           <BonusInput
             id={id}
             type="number"
