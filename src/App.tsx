@@ -8,6 +8,7 @@ import lightTheme from './themes/light';
 import './App.css'
 import { ContentProvider } from './context/ContentContext';
 import Hotkeys from './components/Hotkeys';
+import WindowEvents from './components/WindowEvents';
 import { ToastContainer } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
 
@@ -69,6 +70,7 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
       <ContentProvider>
+        <WindowEvents />
         <Hotkeys>
           <AppContainer>
             <Header toggleTheme={toggleTheme} isDarkMode={isDarkMode} />

@@ -12,6 +12,8 @@ export interface ContentType {
   oldSaveData?: any;
   /** Format-specific details needed to write the file back. */
   saveMeta?: unknown;
+  /** True when saveData has edits that are not written to the file yet. */
+  dirty?: boolean;
   database?: GameDatabase;
   filePath?: string;
   fileName?: string;

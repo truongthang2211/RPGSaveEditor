@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { toast, ToastOptions } from 'react-toastify';
+import { confirm } from '@tauri-apps/plugin-dialog';
 import { useContent } from '../context/ContentContext';
 import { findFormat, saveFileFilters, SaveFormat, supportedExtensionsText } from '../formats';
 import { selectFile } from '../utils/fileUtils';
@@ -27,13 +28,26 @@ function formatFor(filePath: string): SaveFormat {
 /** Reads and decodes a save; the origin copy is independent from the editable one. */
 async function readSave(format: SaveFormat, filePath: string) {
   const { data, meta } = await format.read(filePath);
-  return { saveData: data, originSaveData: structuredClone(data), saveMeta: meta };
+  return { saveData: data, originSaveData: structuredClone(data), saveMeta: meta, dirty: false };
 }
 
-export const useFileUpload = () => {
-  const { setContent } = useContent();
+/** Asks before throwing away unsaved edits; true when it's fine to continue. */
+export async function confirmDiscard(dirty: boolean | undefined, action: string): Promise<boolean> {
+  if (!dirty) return true;
+  return confirm(`You have unsaved changes. ${action} anyway and discard them?`, {
+    title: 'Unsaved changes',
+    kind: 'warning',
+    okLabel: 'Discard changes',
+    cancelLabel: 'Cancel',
+  });
+}
 
-  const openFile = useCallback(async (filePath: string) => {
+/** Opens a save by path (file dialog, drag & drop, ...), asking first if there are unsaved edits. */
+export const useOpenPath = () => {
+  const { content, setContent } = useContent();
+
+  return useCallback(async (filePath: string, { alreadyConfirmed = false } = {}) => {
+    if (!alreadyConfirmed && !(await confirmDiscard(content.dirty, 'Open another file'))) return;
     try {
       const format = formatFor(filePath);
       const loaded = await readSave(format, filePath);
@@ -60,14 +74,21 @@ export const useFileUpload = () => {
     } catch (error) {
       errorNotify(`Error processing file! \n${error}`);
     }
-  }, [setContent]);
+  }, [content.dirty, setContent]);
+};
+
+export const useFileUpload = () => {
+  const { content } = useContent();
+  const openPath = useOpenPath();
 
   return useCallback(async () => {
+    // Ask before the dialog so cancelling doesn't need a second prompt.
+    if (!(await confirmDiscard(content.dirty, 'Open another file'))) return;
     const filePath = await selectFile(saveFileFilters());
     if (filePath) {
-      await openFile(filePath);
+      await openPath(filePath, { alreadyConfirmed: true });
     }
-  }, [openFile]);
+  }, [content.dirty, openPath]);
 };
 
 export const useReload = () => {
@@ -75,6 +96,7 @@ export const useReload = () => {
 
   return useCallback(async () => {
     if (!content.filePath) return;
+    if (!(await confirmDiscard(content.dirty, 'Reload'))) return;
     try {
       const loaded = await readSave(content.format ?? formatFor(content.filePath), content.filePath);
       setContent((prev) => ({
@@ -86,20 +108,26 @@ export const useReload = () => {
     } catch (error) {
       errorNotify(`Error Reloading File Save! \n${error}`);
     }
-  }, [content.filePath, content.format, setContent]);
+  }, [content.filePath, content.format, content.dirty, setContent]);
 };
 
 export const useSave = () => {
-  const { content } = useContent();
+  const { content, setContent } = useContent();
 
   return useCallback(async () => {
     const { filePath, format, saveData, saveMeta } = content;
     if (!filePath || !format || !saveData) return;
     try {
       await format.write(filePath, { data: saveData, meta: saveMeta });
+      // The written data is the new baseline; edits made while writing stay unsaved.
+      setContent((prev) => ({
+        ...prev,
+        originSaveData: structuredClone(saveData),
+        dirty: prev.saveData !== saveData,
+      }));
       successNotify('File Saved!');
     } catch (error) {
       errorNotify(`Error Saving File! \n${error}`);
     }
-  }, [content]);
+  }, [content, setContent]);
 };
