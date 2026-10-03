@@ -78,7 +78,6 @@ const ProgressBar = styled.div<{ width: number }>`
 const ProgressText = styled.p`
   margin: 5px 0;
   font-size: 14px;
-  color: ${({ theme }) => theme.textColor};
 `;
 
 

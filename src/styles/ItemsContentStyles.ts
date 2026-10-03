@@ -40,7 +40,6 @@ export const TableCell = styled.td`
   border-right: 1px solid ${({ theme }) => theme.borderColor};
   text-align: center;
   font-size: 14px;
-  color: ${({ theme }) => theme.textColor};
 `;
 
 export const TableHeaderCell = styled.th<{ width: string }>`
@@ -49,7 +48,6 @@ export const TableHeaderCell = styled.th<{ width: string }>`
   text-align: center;
   font-size: 14px;
   width: ${({ width }) => width};
-  background-color: ${({ theme }) => theme.headerCellBackground};
 `;
 
 // Định nghĩa các style cho các input
