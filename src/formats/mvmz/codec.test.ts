@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { deflateSync, inflateSync } from 'node:zlib';
 import LZString from 'lz-string';
-import { decodeRpgsave, encodeRpgsave, preferredCodecForPath } from './rpgsaveUtils';
+import { decodeRpgsave, encodeRpgsave, preferredCodecForPath } from './codec';
 
 const save = {
   system: { _saveCount: 3 },

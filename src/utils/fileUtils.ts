@@ -1,51 +1,20 @@
-import { open, save } from '@tauri-apps/plugin-dialog';
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
-import { RPG_SAVE_EXTENSIONS } from './saveExtensions';
+import { open } from '@tauri-apps/plugin-dialog';
+import { exists, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 
-/**
- * Mở hộp thoại chọn file và trả về đường dẫn file đã chọn.
- */
-export async function selectFile(): Promise<string | null> {
-  const filePath = await open({
-    multiple: false, // Chỉ chọn một file
-    filters: [{ name: 'RPG Maker Save Files', extensions: [...RPG_SAVE_EXTENSIONS] }],
-  });
+export interface FileFilter {
+  name: string;
+  extensions: string[];
+}
+
+/** Opens the native "open file" dialog; resolves to the chosen path or null if cancelled. */
+export async function selectFile(filters: FileFilter[]): Promise<string | null> {
+  const filePath = await open({ multiple: false, filters });
   return filePath as string | null;
 }
 
-/**
- * Đọc nội dung của file từ đường dẫn file.
- * @param filePath - Đường dẫn đến file
- * @returns Nội dung của file dưới dạng chuỗi
- */
-export async function readFile(filePath: string): Promise<string> {
-  const fileContent = await readTextFile(filePath);
-  return fileContent;
-}
-// fileUtils.ts
-export const saveFile = async (): Promise<string | null> => {
-  try {
-    // Mở hộp thoại lưu file và nhận đường dẫn file
-    const filePath = await save({
-      defaultPath: 'savefile.rpgsave', // Đặt tên file mặc định
-      filters: [
-        { name: 'RPG Maker Save Files', extensions: [...RPG_SAVE_EXTENSIONS] },
-        { name: 'All Files', extensions: ['*'] }
-      ]
-    });
-    
-    return filePath ? filePath.toString() : null;
-  } catch (error) {
-    console.error('Error opening save file dialog:', error);
-    return null;
-  }
-};
+export const readText = (filePath: string): Promise<string> => readTextFile(filePath);
 
-export const writeFile = async (filePath: string, content: string) => {
-  try {
-    await writeTextFile(filePath, content);
-    console.log('File saved successfully.');
-  } catch (error) {
-    console.error('Error writing file:', error);
-  }
-};
+/** Writes text to a file. Throws on failure so callers can report it. */
+export const writeText = (filePath: string, content: string): Promise<void> => writeTextFile(filePath, content);
+
+export const fileExists = (filePath: string): Promise<boolean> => exists(filePath);

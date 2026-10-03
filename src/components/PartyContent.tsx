@@ -1,6 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { useContent } from '../context/ContentContext';
-import _ from 'lodash';
+import React, { useState } from 'react';
 import {
   Label,
   Input,
@@ -16,73 +14,56 @@ import {
   GoldContainer,
   BonusLabel
 } from '../styles/PartyContentStyles';
-import { unwrapArray } from '../utils/jsonExUtils';
+import { useSaveEditor } from '../hooks/useSaveEditor';
+import { ActorField, ActorView } from '../formats';
+
+const BONUS_LABELS = ['HP', 'MP', 'ATK', 'DEF', 'MAT', 'MDF', 'AGI', 'LUK'];
+
+/** Optional stats are only shown when the save has a (non-zero) value for them. */
+const STATS: { field: ActorField; label: string; alwaysShown: boolean }[] = [
+  { field: 'hp', label: 'HP', alwaysShown: true },
+  { field: 'mp', label: 'MP', alwaysShown: true },
+  { field: 'tp', label: 'TP', alwaysShown: false },
+  { field: 'level', label: 'Level', alwaysShown: false },
+  { field: 'exp', label: 'Exp', alwaysShown: false },
+];
 
 const PartyContent: React.FC = () => {
-  const { content, setContent } = useContent();
-  const [gold, setGold] = useState<number>(content.saveData?.party?._gold ?? 0);
-  const [expandedCharacter, setExpandedCharacter] = useState<number | null>(null);
+  const { editor, save, update } = useSaveEditor();
+  const [expandedSlot, setExpandedSlot] = useState<number | null>(null);
 
-  useEffect(() => {
-    setGold(content.saveData?.party?._gold ?? 0);
-  }, [content]);
+  if (!editor || !save) return <Container />;
 
-  const handleGoldChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newGold = Number(event.target.value);
-    setGold(newGold);
-    setContent((prevData: any) =>
-      _.set({ ...prevData }, 'saveData.party._gold', newGold)
-    );
-  };
+  const gold = editor.getGold(save);
+  const actors = editor.getActors(save);
 
-  const handleCharacterClick = (index: number) => {
-    setExpandedCharacter(expandedCharacter === index ? null : index);
-  };
-
-  const handleBonusChange = (characterIndex: number, bonusIndex: number, value: number) => {
-    setContent((prevData: any) => {
-      const updatedContent = _.cloneDeep(prevData);
-      const bonuses = unwrapArray(unwrapArray(updatedContent.saveData.actors._data)[characterIndex + 1]._paramPlus);
-      bonuses[bonusIndex] = value;
-      return updatedContent;
-    });
-  };
-
-  const handleStatChange = (characterIndex: number, statName: string, value: number) => {
-    setContent((prevData: any) => {
-      const updatedContent = _.cloneDeep(prevData);
-  
-      // Tách thuộc tính động và thuộc tính thông thường
-      const keys = statName.split(/[\.\[\]\'\"]/).filter(Boolean);
-      let target = unwrapArray(updatedContent.saveData.actors._data)[characterIndex + 1];
-  
-      // Duyệt qua các cấp của thuộc tính
-      for (let i = 0; i < keys.length - 1; i++) {
-        target = target[keys[i]];
-      }
-  
-      // Cập nhật giá trị thuộc tính cuối cùng
-      target[keys[keys.length - 1]] = value;
-  
-      return updatedContent;
-    });
-  };
-  
-
-  const renderBonus = (bonus: number[], characterIndex: number) => (
-    bonus.map((b, i) => (
+  const renderBonus = (actor: ActorView) =>
+    actor.paramPlus.map((value, i) => (
       <BonusItem key={i}>
-        <BonusLabel>Bonus {['HP', 'MP', 'ATK', 'DEF', 'MAT', 'MDF', 'AGI', 'LUK'][i]}:</BonusLabel>
+        <BonusLabel>Bonus {BONUS_LABELS[i]}:</BonusLabel>
         <BonusInput
           type="number"
-          value={b}
-          onChange={(e) => handleBonusChange(characterIndex, i, Number(e.target.value))}
+          value={value}
+          onChange={(e) => update((ed, s) => ed.setActorParamPlus(s, actor.slot, i, Number(e.target.value)))}
         />
       </BonusItem>
-    ))
-  );
+    ));
 
-  const characters = unwrapArray(content.saveData?.actors?._data).filter((e: any) => e != null);
+  const renderStats = (actor: ActorView) =>
+    STATS.filter(({ field, alwaysShown }) => alwaysShown || actor[field]).map(({ field, label }) => {
+      const id = `${field}-${actor.slot}`;
+      return (
+        <StatItem key={field}>
+          <StatLabel htmlFor={id}>{label}:</StatLabel>
+          <BonusInput
+            id={id}
+            type="number"
+            value={actor[field] || ''}
+            onChange={(e) => update((ed, s) => ed.setActorField(s, actor.slot, field, Number(e.target.value)))}
+          />
+        </StatItem>
+      );
+    });
 
   return (
     <Container>
@@ -92,67 +73,19 @@ const PartyContent: React.FC = () => {
           id="gold"
           type="number"
           value={gold}
-          onChange={handleGoldChange}
+          onChange={(e) => update((ed, s) => ed.setGold(s, Number(e.target.value)))}
         />
       </GoldContainer>
-      {characters.map((character: any, index: number) => (
-        <CharacterContainer key={index}>
-          <CharacterHeader onClick={() => handleCharacterClick(index)}>
-            {character._name || `Character ${index + 1}`}
-            {expandedCharacter === index ? '▲' : '▼'}
+      {actors.map((actor, index) => (
+        <CharacterContainer key={actor.slot}>
+          <CharacterHeader onClick={() => setExpandedSlot(expandedSlot === actor.slot ? null : actor.slot)}>
+            {actor.name || `Character ${index + 1}`}
+            {expandedSlot === actor.slot ? '▲' : '▼'}
           </CharacterHeader>
-          {expandedCharacter === index && (
+          {expandedSlot === actor.slot && (
             <>
-              <BonusList>
-                {renderBonus(unwrapArray(character._paramPlus), index)}
-              </BonusList>
-              <StatsContainer>
-                <StatItem>
-                  <StatLabel htmlFor={`hp-${index}`}>HP:</StatLabel>
-                  <BonusInput
-                    id={`hp-${index}`}
-                    type="number"
-                    value={character._hp || ''}
-                    onChange={(e) => handleStatChange(index, '_hp', Number(e.target.value))}
-                  />
-                </StatItem>
-                <StatItem>
-                  <StatLabel htmlFor={`mp-${index}`}>MP:</StatLabel>
-                  <BonusInput
-                    id={`mp-${index}`}
-                    type="number"
-                    value={character._mp || ''}
-                    onChange={(e) => handleStatChange(index, '_mp', Number(e.target.value))}
-                  />
-                </StatItem>
-                {character._tp ? (<StatItem>
-                  <StatLabel htmlFor={`tp-${index}`}>TP:</StatLabel>
-                  <BonusInput
-                    id={`tp-${index}`}
-                    type="number"
-                    value={character._tp}
-                    onChange={(e) => handleStatChange(index, '_tp', Number(e.target.value))}
-                  />
-                </StatItem>) : null}
-                {character._level ? (<StatItem>
-                  <StatLabel htmlFor={`level-${index}`}>Level:</StatLabel>
-                  <BonusInput
-                    id={`level-${index}`}
-                    type="number"
-                    value={character._level}
-                    onChange={(e) => handleStatChange(index, '_level', Number(e.target.value))}
-                  />
-                </StatItem>) : null}
-                {character._exp["1"] ? (<StatItem>
-                  <StatLabel htmlFor={`exp-${index}`}>Exp:</StatLabel>
-                  <BonusInput
-                    id={`exp-${index}`}
-                    type="number"
-                    value={character._exp["1"]}
-                    onChange={(e) => handleStatChange(index, '_exp["1"]', Number(e.target.value))}
-                  />
-                </StatItem>) : null}
-              </StatsContainer>
+              <BonusList>{renderBonus(actor)}</BonusList>
+              <StatsContainer>{renderStats(actor)}</StatsContainer>
             </>
           )}
         </CharacterContainer>
