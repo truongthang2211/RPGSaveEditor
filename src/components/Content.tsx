@@ -6,6 +6,7 @@ import SwitchesContent from './SwitchesContent';
 import VariablesContent from './VariablesContent';
 import AboutContent from './AboutContent';
 import ErrorBoundary from './ErrorBoundary';
+import EmptyState from './EmptyState';
 import { useContent } from '../context/ContentContext';
 
 const ContentContainer = styled.div`
@@ -19,6 +20,14 @@ interface ContentProps {
 const Content: React.FC<ContentProps> = ({ page }) => {
   const { content } = useContent();
   let displayContent: JSX.Element;
+
+  if (!content.format && page !== 'About') {
+    return (
+      <ContentContainer>
+        <EmptyState />
+      </ContentContainer>
+    );
+  }
 
   switch (page) {
     case 'Party':
