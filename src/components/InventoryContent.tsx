@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { QuantityInput } from '../styles/ItemsContentStyles';
+import { QuantityInput, Truncate } from '../styles/ItemsContentStyles';
 import Tooltip from './Tooltip';
 import DataTable, { Column } from './DataTable';
 import { useSaveEditor } from '../hooks/useSaveEditor';
@@ -71,7 +71,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({ kind, label }) => {
       value: (r) => r.name,
       render: (r, index, visible) => (
         <Tooltip text={r.description} placement={index === visible.length - 1 ? 'top' : 'right'}>
-          {r.name}
+          <Truncate title={r.name}>{r.name}</Truncate>
         </Tooltip>
       ),
     },

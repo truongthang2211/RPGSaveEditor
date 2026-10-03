@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableHeaderCell,
   TableRow,
+  Truncate,
 } from '../styles/ItemsContentStyles';
 
 /** A sortable/searchable cell value; null is shown as "-" (e.g. no previous save to compare). */
@@ -39,10 +40,17 @@ type SortDirection = 'asc' | 'desc';
 
 const PAGE_SIZE = 500;
 
+/** Label + sort arrow on one line above the search box; cut with "…" if the column is narrow. */
 const HeaderButton = styled.button`
   all: unset;
+  display: block;
+  margin-bottom: 4px;
+  text-align: center;
   cursor: pointer;
   user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   &:focus-visible {
     outline: 2px solid ${({ theme }) => theme.primaryColor};
     border-radius: 2px;
@@ -139,7 +147,11 @@ function DataTable<Row>({ rows, columns, rowKey, initialSort }: DataTableProps<R
             <TableRow key={rowKey(row)} ref={index === visibleRows.length - 1 ? ref : null}>
               {columns.map((column) => (
                 <TableCell key={column.key}>
-                  {column.render ? column.render(row, index, visibleRows) : display(column.value(row))}
+                  {column.render ? (
+                    column.render(row, index, visibleRows)
+                  ) : (
+                    <Truncate title={String(display(column.value(row)))}>{display(column.value(row))}</Truncate>
+                  )}
                 </TableCell>
               ))}
             </TableRow>
