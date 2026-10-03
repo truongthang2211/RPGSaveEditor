@@ -78,12 +78,12 @@ If you find this tool useful, please consider supporting us:
 
 ## Download
 
-You can download the latest release of RPG Save Editor from the [Releases](https://github.com/truongthang2211/RPGSaveEditor/releases) page. The release includes:
+You can download the latest release of RPG Save Editor from the [Releases](https://github.com/truongthang2211/RPGSaveEditor/releases) page:
 
-- A standalone executable file (`.exe`) for users who already have the necessary dependencies installed.
-- A setup installer (`setup.exe`) for users who may need to install additional dependencies.
+- **Windows**: `rpgsaveeditor_<version>_x64-setup.exe` (installer).
+- **Linux**: `rpgsaveeditor_<version>_amd64.AppImage` (portable: `chmod +x` it and run) or `rpgsaveeditor_<version>_amd64.deb` (Debian/Ubuntu: `sudo apt install ./rpgsaveeditor_<version>_amd64.deb`).
 
-If the standalone `.exe` file does not run on your system, please use the `setup.exe` to install the required software and try again.
+The app checks for updates from the About page. On Linux, automatic updates work for the AppImage; install new `.deb` versions from the Releases page.
 
 ## Contributing
 
