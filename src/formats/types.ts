@@ -81,6 +81,11 @@ export interface TreeNode {
   /** Leaves that may be edited, and with which kind of input. */
   editable?: 'number' | 'string' | 'boolean';
   hasChildren: boolean;
+  /**
+   * The underlying container, when the same one can appear at several paths
+   * (shared Ruby objects): lets search walk its contents only once.
+   */
+  identity?: object;
   /** Format-specific locator; opaque to the UI. */
   ref: unknown;
 }

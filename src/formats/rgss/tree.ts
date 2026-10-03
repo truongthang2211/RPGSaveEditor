@@ -110,6 +110,7 @@ function node(view: PatchedView, save: RgssSave, id: string, key: string, slot: 
     summary: cycle ? '↺ already open above (cycle)' : info.summary,
     editable: EDITABLE_SLOTS.has(slot.kind) ? info.editable : undefined,
     hasChildren: container && !cycle,
+    ...(container ? { identity: value as object } : {}),
     ref: { slot, ancestors } satisfies Ref,
   };
 }
