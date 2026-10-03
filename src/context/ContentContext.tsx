@@ -1,50 +1,40 @@
 import React, { createContext, useState, ReactNode } from 'react';
-import { WeaponData } from '../types/Weapon';
-import { ItemData } from '../types/Item';
-import { SystemData } from '../types/System';
-import { ArmorData } from '../types/Armo';
-import { SaveData } from '../types/SaveData';
-import { SaveCodec } from '../utils/rpgsaveUtils';
+import { GameDatabase, SaveFormat } from '../formats';
 
-// Define interfaces for Content and ContentContext
 export interface ContentType {
-  saveData?: SaveData ;
-  originSaveData?: SaveData;
-  oldSaveData?: SaveData;
-  itemData?: (ItemData | null)[];
-  weaponsData?: (WeaponData | null)[];
-  armorsData?: (ArmorData | null)[];
-  systemData?: SystemData;
+  /** Format of the open file; its `editor` reads/writes the save data below. */
+  format?: SaveFormat;
+  /** Current, edited save. */
+  saveData?: any;
+  /** Save as loaded from disk (for "GAP" comparisons and reload). */
+  originSaveData?: any;
+  /** Previously loaded save of the same game (for "Old" columns). */
+  oldSaveData?: any;
+  /** Format-specific details needed to write the file back. */
+  saveMeta?: unknown;
+  database?: GameDatabase;
   filePath?: string;
   fileName?: string;
   gameName?: string;
-  saveCodec?: SaveCodec;
 }
 
 interface ContentContextType {
   content: ContentType;
-  setContent: (content: ContentType | any) => void;
+  setContent: React.Dispatch<React.SetStateAction<ContentType>>;
 }
 
-// Create a Context with undefined default value
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
-// Create a Provider component
 const ContentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Initialize state with undefined content
   const [content, setContent] = useState<ContentType>({});
 
-  // Provide the context value with the current state and updater function
-  const value = { content, setContent };
-
   return (
-    <ContentContext.Provider value={value}>
+    <ContentContext.Provider value={{ content, setContent }}>
       {children}
     </ContentContext.Provider>
   );
 };
 
-// Create a custom hook to use the ContentContext
 const useContent = (): ContentContextType => {
   const context = React.useContext(ContentContext);
   if (context === undefined) {

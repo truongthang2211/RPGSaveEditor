@@ -1,6 +1,4 @@
 import React, { useCallback, useState } from 'react';
-import { useContent } from '../context/ContentContext';
-import _ from 'lodash';
 import {
   SearchInput,
   TableCell,
@@ -12,7 +10,7 @@ import {
   SwitchInput, // Giả sử bạn đã định nghĩa một SwitchInput style
 } from '../styles/ItemsContentStyles';
 import { useInView } from 'react-intersection-observer';
-import { arrayPath, unwrapArray } from '../utils/jsonExUtils';
+import { useSaveEditor } from '../hooks/useSaveEditor';
 
 interface Switch {
   id: number;
@@ -23,7 +21,7 @@ interface Switch {
 }
 
 const SwitchesContent: React.FC = () => {
-  const { content, setContent } = useContent();
+  const { editor, save, origin, old, database, update } = useSaveEditor();
   const [searchId, setSearchId] = useState<string>('');
   const [searchName, setSearchName] = useState<string>('');
   const [searchState, setSearchState] = useState<string>('');
@@ -44,15 +42,16 @@ const SwitchesContent: React.FC = () => {
   }, [inView]);
 
   
-  const switches = content.systemData?.switches || []; // Chuỗi các switch
-  const switchesState = unwrapArray(content.saveData?.switches?._data); // Trạng thái của các switch
-  const switchesStateOrigin = unwrapArray(content.originSaveData?.switches?._data); // Trạng thái của các switch
-  const oldSwitchesState = unwrapArray(content.oldSaveData?.switches?._data); // Trạng thái cũ của các switch
+  const switchesOf = (s: any): (boolean | null)[] => (editor && s ? editor.getSwitches(s) : []);
+  const switches = database?.system?.switches || []; // Tên các switch
+  const switchesState = switchesOf(save); // Trạng thái của các switch
+  const switchesStateOrigin = switchesOf(origin); // Trạng thái lúc mở file
+  const oldSwitchesState = switchesOf(old); // Trạng thái cũ của các switch
 
   // Tạo mảng Switch với id, name, state, oldState, và gap
   const switchData: (Switch)[] = (switches && switches.length > 0
     ? switches.map((item: string | null, index: number) => {
-        const state = switchesState[index];
+        const state = !!switchesState[index];
         const oldState = oldSwitchesState[index] ? '1' : oldSwitchesState[index] === false ? '0' : '-';
         const gap = oldSwitchesState[index] != null ? (switchesStateOrigin[index] === oldSwitchesState[index] ? '0' : '1') : '-';
 
@@ -64,7 +63,8 @@ const SwitchesContent: React.FC = () => {
           gap
         };
       })
-    : switchesState.map((state: boolean, index: number) => {
+    : switchesState.map((value, index: number) => {
+        const state = !!value;
         const oldState = oldSwitchesState[index] ? '1' : oldSwitchesState[index] === false ? '0' : '-';
         const gap = oldSwitchesState[index] != null ? (switchesStateOrigin[index] === oldSwitchesState[index] ? '0' : '1') : '-';
 
@@ -79,12 +79,8 @@ const SwitchesContent: React.FC = () => {
   );
 
   const handleSwitchChange = useCallback((id: number, state: boolean) => {
-    const newState = [...switchesState];
-    newState[id] = state;
-    const path = arrayPath(content.saveData?.switches?._data, 'saveData.switches._data');
-    const updatedContent = _.set({ ...content }, path, newState);
-    setContent(updatedContent);
-  }, [switchesState, content, setContent]);
+    update((ed, s) => ed.setSwitch(s, id, state));
+  }, [update]);
 
   const filteredSwitches = switchData
     .filter((sw) => {

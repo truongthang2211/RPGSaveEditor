@@ -1,11 +1,9 @@
 import React from 'react';
 import styled from 'styled-components';
 import PartyContent from './PartyContent';
-import ItemsContent from './ItemsContent';
+import InventoryContent from './InventoryContent';
 import SwitchesContent from './SwitchesContent';
 import VariablesContent from './VariablesContent';
-import WeaponsContent from './WeaponsContent';
-import ArmorsContent from './ArmorsContent';
 import AboutContent from './AboutContent';
 
 const ContentContainer = styled.div`
@@ -24,7 +22,7 @@ const Content: React.FC<ContentProps> = ({ page }) => {
       displayContent = <PartyContent />;
       break;
     case 'Items':
-      displayContent = <ItemsContent />;
+      displayContent = <InventoryContent key="items" kind="items" label="Item" />;
       break;
     case 'Switches':
       displayContent = <SwitchesContent />;
@@ -33,10 +31,10 @@ const Content: React.FC<ContentProps> = ({ page }) => {
       displayContent = <VariablesContent />;
       break;
     case 'Weapons':
-      displayContent = <WeaponsContent />;
+      displayContent = <InventoryContent key="weapons" kind="weapons" label="Weapon" />;
       break;
     case 'Armors':
-      displayContent = <ArmorsContent />;
+      displayContent = <InventoryContent key="armors" kind="armors" label="Armor" />;
       break;
     case 'About':
       displayContent = <AboutContent />;

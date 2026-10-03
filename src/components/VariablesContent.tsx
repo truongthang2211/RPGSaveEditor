@@ -1,6 +1,4 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { useContent } from '../context/ContentContext';
-import _ from 'lodash';
 import {
   SearchInput,
   TableCell,
@@ -13,7 +11,7 @@ import {
 } from '../styles/ItemsContentStyles';
 import { getDifferences } from '../utils/textUtils';
 import { useInView } from 'react-intersection-observer';
-import { arrayPath, unwrapArray } from '../utils/jsonExUtils';
+import { useSaveEditor } from '../hooks/useSaveEditor';
 
 // Khai báo kiểu dữ liệu cho các mục
 interface Item {
@@ -25,7 +23,7 @@ interface Item {
 }
 
 const VariablesContent: React.FC = () => {
-  const { content, setContent } = useContent();
+  const { editor, save, origin, old, database, update } = useSaveEditor();
   const [searchId, setSearchId] = useState<string>('');
   const [searchName, setSearchName] = useState<string>('');
   const [searchQuantity, setSearchQuantity] = useState<string>('');
@@ -45,50 +43,21 @@ const VariablesContent: React.FC = () => {
     }
   }, [inView]);
 
-  // Helper function to normalize variables data (handles both @a array and object formats)
-  const normalizeVariablesData = (data: any) => {
-    if (Array.isArray(data)) {
-      // If it's an array (from @a structure), convert to object
-      return data.reduce((acc, val, idx) => {
-        acc[idx] = val;
-        return acc;
-      }, {} as Record<number, any>);
-    }
-    return data || {};
-  };
-
-  const itemsOfPlayerOrigin = normalizeVariablesData(
-    content.originSaveData?.variables?._data?.['@a'] || content.originSaveData?.variables?._data
-  );
-  const itemsOfPlayer = normalizeVariablesData(
-    content.saveData?.variables?._data?.['@a'] || content.saveData?.variables?._data
-  );
-  const itemsOfPlayerOld = normalizeVariablesData(
-    content.oldSaveData?.variables?._data?.['@a'] || content.oldSaveData?.variables?._data
-  );
+  const variablesOf = (s: any): Record<number, any> => (editor && s ? editor.getVariables(s) : {});
+  const itemsOfPlayerOrigin = variablesOf(origin);
+  const itemsOfPlayer = variablesOf(save);
+  const itemsOfPlayerOld = variablesOf(old);
 
   const handleQuantityChange = useCallback((id: number, value: number | string) => {
     const normalizedValue = typeof value === 'string' && !isNaN(Number(value))
       ? Number(value)
       : value;
 
-    // Save to the appropriate location based on current structure (MV "@a" array, MZ plain array, or object)
-    const variablesData = content.saveData?.variables?._data;
-    const path = arrayPath(variablesData, 'saveData.variables._data');
-    const isArray = Array.isArray(variablesData) || Array.isArray(variablesData?.['@a']);
-    let newValue: any;
-    if (isArray) {
-      newValue = [...unwrapArray(variablesData)];
-      newValue[id] = normalizedValue;
-    } else {
-      newValue = { ...itemsOfPlayer, [id]: normalizedValue };
-    }
-    const updatedContent = _.set({ ...content }, path, newValue);
-    setContent(updatedContent);
-  }, [itemsOfPlayer, content, setContent]);
+    update((ed, s) => ed.setVariable(s, id, normalizedValue));
+  }, [update]);
 
   const items: Item[] = useMemo(() => {
-    const variables = content?.systemData?.variables || [];
+    const variables = database?.system?.variables || [];
     
     return (variables && variables.length > 0
       ? variables.map((item: string | null, ind: number) => {
@@ -141,7 +110,7 @@ const VariablesContent: React.FC = () => {
         return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
       }
     });
-  }, [content, itemsOfPlayer, itemsOfPlayerOrigin, itemsOfPlayerOld, searchId, searchName, searchQuantity, searchOldQuantity, searchGap, sortColumn, sortDirection]);
+  }, [database, itemsOfPlayer, itemsOfPlayerOrigin, itemsOfPlayerOld, searchId, searchName, searchQuantity, searchOldQuantity, searchGap, sortColumn, sortDirection]);
 
   const handleSort = (column: keyof Item) => {
     setSortColumn(column as string);

@@ -1,6 +1,4 @@
 import React, { useCallback, useState } from 'react';
-import { useContent } from '../context/ContentContext';
-import _ from 'lodash';
 import {
   SearchInput,
   TableCell,
@@ -13,7 +11,8 @@ import {
 } from '../styles/ItemsContentStyles';
 import Tooltip from './Tooltip';
 import { useInView } from 'react-intersection-observer';
-import { ArmorData } from '../types/Armo';
+import { useSaveEditor } from '../hooks/useSaveEditor';
+import { InventoryKind } from '../formats';
 
 // Khai báo kiểu dữ liệu cho các mục
 interface Item {
@@ -25,8 +24,15 @@ interface Item {
   gap: number;
 }
 
-const ArmorsContent: React.FC = () => {
-  const { content, setContent } = useContent();
+interface InventoryContentProps {
+  kind: InventoryKind;
+  /** Name shown for entries missing from the database, e.g. "Weapon" -> "Weapon#12". */
+  label: string;
+}
+
+/** Items, weapons or armors held by the party. */
+const InventoryContent: React.FC<InventoryContentProps> = ({ kind, label }) => {
+  const { editor, save, origin, old, database, update } = useSaveEditor();
   const [searchId, setSearchId] = useState<string>('');
   const [searchName, setSearchName] = useState<string>('');
   const [searchQuantity, setSearchQuantity] = useState<string>('');
@@ -42,27 +48,26 @@ const ArmorsContent: React.FC = () => {
   });
   React.useEffect(() => {
     if (inView) {
-      setVisibleItems((prevVisibleItems) => prevVisibleItems + 500);
+      setVisibleItems((prevVisibleItems) => prevVisibleItems + 500); 
     }
   }, [inView]);
 
-
-  const itemsOfPlayerOrigin = (content.originSaveData?.party?._armors || {}) as Record<number, number>;
-  const itemsOfPlayer = (content.saveData?.party?._armors || {}) as Record<number, number>;
-  const itemsOfPlayerOld = (content.oldSaveData?.party?._armors || {}) as Record<number, number>;
+  const inventoryOf = (s: any): Record<number, number> => (editor && s ? editor.getInventory(s, kind) : {});
+  const itemsOfPlayerOrigin = inventoryOf(origin);
+  const itemsOfPlayer = inventoryOf(save);
+  const itemsOfPlayerOld = inventoryOf(old);
+  const databaseEntries = database?.[kind];
 
   const handleQuantityChange = useCallback((id: number, value: number) => {
-    const newQuantities = { ...itemsOfPlayer, [id]: value };
-    const t = _.set({ ...content }, 'saveData.party._armors', newQuantities);
-    setContent(t);
-  }, [itemsOfPlayer, content, setContent]);
+    update((ed, s) => ed.setInventoryCount(s, kind, id, value));
+  }, [update, kind]);
 
   // Tính toán giá trị `quantity`, `oldQuantity`, và `gap` trước khi sắp xếp
-  const items: Item[] = (content.armorsData && content.armorsData.length > 0
-    ? content.armorsData.map((item: ArmorData | null) => {
+  const items: Item[] = (databaseEntries && databaseEntries.length > 0
+    ? databaseEntries.map((item) => {
         if (!item) return { id: 0, name: '', quantity: 0, oldQuantity: 0, gap: 0 }; // Handle null case
-        const quantity = itemsOfPlayer[item.id] || 0;
-        const quantityOrigin = itemsOfPlayerOrigin[item.id] || 0;
+        const quantity = itemsOfPlayer[item?.id] || 0;
+        const quantityOrigin = itemsOfPlayerOrigin[item?.id] || 0;
         const oldQuantity = itemsOfPlayerOld[item?.id] || 0;
         const gap = quantityOrigin - oldQuantity;
 
@@ -81,7 +86,7 @@ const ArmorsContent: React.FC = () => {
 
         return {
           id: Number(key) || key,
-          name: `Armor#${key}`,
+          name: `${label}#${key}`,
           description: '',
           quantity: quantity || 0,
           oldQuantity,
@@ -190,7 +195,7 @@ const ArmorsContent: React.FC = () => {
               <TableRow key={item?.id} ref={index === visibleItems - 1 ? ref : null}>
                 <TableCell className="id-column">{item?.id}</TableCell>
                 <TableCell className="name-column">
-                  <Tooltip text={item?.description} placement={index === items.length - 1 ? 'top' : 'right'}>
+                  <Tooltip text={item?.description} placement={index === items.length-1 ? 'top' : 'right'}>
                     {item?.name}
                   </Tooltip>
                 </TableCell>
@@ -213,4 +218,4 @@ const ArmorsContent: React.FC = () => {
   );
 };
 
-export default ArmorsContent;
+export default InventoryContent;

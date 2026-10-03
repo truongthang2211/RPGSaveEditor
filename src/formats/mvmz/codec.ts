@@ -1,10 +1,12 @@
 import LZString from 'lz-string';
-import { RPGSave } from '../types/RPGSave';
 
 /** MV = LZ-String Base64; official MZ = pako/zlib written as a UTF-8 binary string. */
 export type SaveCodec = 'lzstring' | 'pako';
 
-function tryLzString(save: string): RPGSave | null {
+/** Decoded MV/MZ save (JsonEx output). Contents vary by engine version and plugins. */
+export type MvMzSave = Record<string, any>;
+
+function tryLzString(save: string): MvMzSave | null {
   try {
     const decoded = LZString.decompressFromBase64(save);
     if (!decoded) return null;
@@ -31,7 +33,7 @@ function bytesToBinaryString(bytes: Uint8Array): string {
   return result;
 }
 
-async function tryPako(save: string): Promise<RPGSave | null> {
+async function tryPako(save: string): Promise<MvMzSave | null> {
   try {
     if (typeof DecompressionStream === 'undefined') return null;
     const compressed = binaryStringToBytes(save);
@@ -54,7 +56,7 @@ async function deflateZlib(text: string): Promise<string> {
  * Decode an RPG Maker MV (.rpgsave) or MZ (.rmmzsave) payload.
  * Tries the preferred codec first, then the other, so mislabeled files still open.
  */
-export async function decodeRpgsave(save: string, preferred: SaveCodec = 'lzstring'): Promise<{ data: RPGSave; codec: SaveCodec }> {
+export async function decodeRpgsave(save: string, preferred: SaveCodec = 'lzstring'): Promise<{ data: MvMzSave; codec: SaveCodec }> {
   const order: SaveCodec[] = preferred === 'pako' ? ['pako', 'lzstring'] : ['lzstring', 'pako'];
   for (const codec of order) {
     const data = codec === 'lzstring' ? tryLzString(save) : await tryPako(save);
