@@ -16,6 +16,7 @@ import {
   GoldContainer,
   BonusLabel
 } from '../styles/PartyContentStyles';
+import { unwrapArray } from '../utils/jsonExUtils';
 
 const PartyContent: React.FC = () => {
   const { content, setContent } = useContent();
@@ -41,7 +42,7 @@ const PartyContent: React.FC = () => {
   const handleBonusChange = (characterIndex: number, bonusIndex: number, value: number) => {
     setContent((prevData: any) => {
       const updatedContent = _.cloneDeep(prevData);
-      const bonuses = updatedContent.saveData.actors._data['@a'][characterIndex + 1]._paramPlus['@a'];
+      const bonuses = unwrapArray(unwrapArray(updatedContent.saveData.actors._data)[characterIndex + 1]._paramPlus);
       bonuses[bonusIndex] = value;
       return updatedContent;
     });
@@ -53,7 +54,7 @@ const PartyContent: React.FC = () => {
   
       // Tách thuộc tính động và thuộc tính thông thường
       const keys = statName.split(/[\.\[\]\'\"]/).filter(Boolean);
-      let target = updatedContent.saveData.actors._data['@a'][characterIndex + 1];
+      let target = unwrapArray(updatedContent.saveData.actors._data)[characterIndex + 1];
   
       // Duyệt qua các cấp của thuộc tính
       for (let i = 0; i < keys.length - 1; i++) {
@@ -81,7 +82,7 @@ const PartyContent: React.FC = () => {
     ))
   );
 
-  const characters = content.saveData?.actors?._data?.['@a'].filter((e: any) => e != null) || [];
+  const characters = unwrapArray(content.saveData?.actors?._data).filter((e: any) => e != null);
 
   return (
     <Container>
@@ -103,7 +104,7 @@ const PartyContent: React.FC = () => {
           {expandedCharacter === index && (
             <>
               <BonusList>
-                {renderBonus(character._paramPlus['@a'] || [], index)}
+                {renderBonus(unwrapArray(character._paramPlus), index)}
               </BonusList>
               <StatsContainer>
                 <StatItem>

@@ -13,6 +13,7 @@ import {
 } from '../styles/ItemsContentStyles';
 import { getDifferences } from '../utils/textUtils';
 import { useInView } from 'react-intersection-observer';
+import { arrayPath, unwrapArray } from '../utils/jsonExUtils';
 
 // Khai báo kiểu dữ liệu cho các mục
 interface Item {
@@ -71,13 +72,18 @@ const VariablesContent: React.FC = () => {
       ? Number(value)
       : value;
 
-    const newQuantities = { ...itemsOfPlayer, [id]: normalizedValue };
-    // Save to the appropriate location based on current structure
+    // Save to the appropriate location based on current structure (MV "@a" array, MZ plain array, or object)
     const variablesData = content.saveData?.variables?._data;
-    const path = Array.isArray(variablesData?.['@a']) 
-      ? 'saveData.variables._data.@a'
-      : 'saveData.variables._data';
-    const updatedContent = _.set({ ...content }, path, Array.isArray(variablesData?.['@a']) ? Object.values(newQuantities) : newQuantities);
+    const path = arrayPath(variablesData, 'saveData.variables._data');
+    const isArray = Array.isArray(variablesData) || Array.isArray(variablesData?.['@a']);
+    let newValue: any;
+    if (isArray) {
+      newValue = [...unwrapArray(variablesData)];
+      newValue[id] = normalizedValue;
+    } else {
+      newValue = { ...itemsOfPlayer, [id]: normalizedValue };
+    }
+    const updatedContent = _.set({ ...content }, path, newValue);
     setContent(updatedContent);
   }, [itemsOfPlayer, content, setContent]);
 

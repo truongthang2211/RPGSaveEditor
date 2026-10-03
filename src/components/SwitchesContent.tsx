@@ -12,6 +12,7 @@ import {
   SwitchInput, // Giả sử bạn đã định nghĩa một SwitchInput style
 } from '../styles/ItemsContentStyles';
 import { useInView } from 'react-intersection-observer';
+import { arrayPath, unwrapArray } from '../utils/jsonExUtils';
 
 interface Switch {
   id: number;
@@ -44,9 +45,9 @@ const SwitchesContent: React.FC = () => {
 
   
   const switches = content.systemData?.switches || []; // Chuỗi các switch
-  const switchesState = content.saveData?.switches?._data['@a'] || []; // Trạng thái của các switch
-  const switchesStateOrigin = content.originSaveData?.switches?._data['@a'] || []; // Trạng thái của các switch
-  const oldSwitchesState = content.oldSaveData?.switches?._data['@a'] || []; // Trạng thái cũ của các switch
+  const switchesState = unwrapArray(content.saveData?.switches?._data); // Trạng thái của các switch
+  const switchesStateOrigin = unwrapArray(content.originSaveData?.switches?._data); // Trạng thái của các switch
+  const oldSwitchesState = unwrapArray(content.oldSaveData?.switches?._data); // Trạng thái cũ của các switch
 
   // Tạo mảng Switch với id, name, state, oldState, và gap
   const switchData: (Switch)[] = (switches && switches.length > 0
@@ -80,7 +81,8 @@ const SwitchesContent: React.FC = () => {
   const handleSwitchChange = useCallback((id: number, state: boolean) => {
     const newState = [...switchesState];
     newState[id] = state;
-    const updatedContent = _.set({ ...content }, 'saveData.switches._data.@a', newState);
+    const path = arrayPath(content.saveData?.switches?._data, 'saveData.switches._data');
+    const updatedContent = _.set({ ...content }, path, newState);
     setContent(updatedContent);
   }, [switchesState, content, setContent]);
 
