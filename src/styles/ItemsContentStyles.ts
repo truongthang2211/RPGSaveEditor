@@ -16,6 +16,8 @@ export const Table = styled.table`
   border-collapse: collapse;
   border-radius: 16px;
   overflow: hidden;
+  /* Column widths stay as declared, so a very long name can't push other columns off screen. */
+  table-layout: fixed;
 `;
 
 export const TableHeader = styled.thead`
@@ -48,6 +50,15 @@ export const TableHeaderCell = styled.th<{ width: string }>`
   text-align: center;
   font-size: 14px;
   width: ${({ width }) => width};
+`;
+
+/** One-line text cut with "…" when it doesn't fit; pair with a title showing the full text. */
+export const Truncate = styled.span`
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 // Định nghĩa các style cho các input

@@ -16,7 +16,8 @@ const SidebarItem = styled.div<{ $isSelected: boolean }>`
 
   &:hover {
     background-color: ${({ theme, $isSelected }) => $isSelected ? theme.selectedBackground : theme.hoverBackground};
-    color: ${({ theme }) => theme.primaryColor};
+    /* Keep the selected item's white text readable on its blue background. */
+    color: ${({ theme, $isSelected }) => $isSelected ? theme.selectedColor : theme.primaryColor};
   }
 `;
 

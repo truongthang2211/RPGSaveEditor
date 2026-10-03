@@ -15,6 +15,8 @@ const lightTheme = {
   itemBackground: '#ffffff', // Nền cho các item trong bảng
   inputBackground: '#fefefe', // Nền cho input
   inputTextColor: '#333', // Màu chữ trong input
+  changedBackground: '#fff4d6', // Ô đã sửa so với lúc mở file
+  changedBorder: '#e0a800',
   borderRadius: '4px', // Góc bo tròn cho các phần tử
 };
 

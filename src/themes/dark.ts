@@ -15,6 +15,8 @@ const darkTheme = {
   itemBackground: '#262626', // Nền cho các item trong bảng, sáng hơn
   inputBackground: '#333333', // Nền cho input, sáng hơn
   inputTextColor: '#e5e5e5', // Màu chữ trong input, sáng hơn
+  changedBackground: '#4a3f1d', // Ô đã sửa so với lúc mở file
+  changedBorder: '#d4a72c',
   borderRadius: '4px', // Góc bo tròn cho các phần tử
 };
 

@@ -1,189 +1,82 @@
-import React, { useCallback, useState } from 'react';
-import {
-  SearchInput,
-  TableCell,
-  TableContainer,
-  TableHeader,
-  TableHeaderCell,
-  Table,
-  TableRow,
-  SwitchInput, // Giả sử bạn đã định nghĩa một SwitchInput style
-} from '../styles/ItemsContentStyles';
-import { useInView } from 'react-intersection-observer';
+import React, { useCallback, useMemo } from 'react';
+import { SwitchInput } from '../styles/ItemsContentStyles';
+import DataTable, { Column } from './DataTable';
 import { useSaveEditor } from '../hooks/useSaveEditor';
+import { CHANGED_HELP, GAP_COLUMN_HELP, OLD_COLUMN_HELP } from './columnHelp';
 
-interface Switch {
+interface Row {
   id: number;
   name: string;
   state: boolean;
-  oldState: string;
-  gap: string;
+  /** State when the file was opened. */
+  origin: boolean;
+  /** State in the previously opened save of this game; null when there is none. */
+  old: boolean | null;
+  /** Whether the state changed since that previous save; null when there is none. */
+  gap: boolean | null;
 }
 
 const SwitchesContent: React.FC = () => {
   const { editor, save, origin, old, database, update } = useSaveEditor();
-  const [searchId, setSearchId] = useState<string>('');
-  const [searchName, setSearchName] = useState<string>('');
-  const [searchState, setSearchState] = useState<string>('');
-  const [searchOldState, setSearchOldState] = useState<string>('');
-  const [searchGap, setSearchGap] = useState<string>('');
-  const [sortColumn, setSortColumn] = useState<string>('id');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [visibleItems, setVisibleItems] = useState<number>(500); // Number of items to display initially
 
-  const { ref, inView } = useInView({
-    threshold: 0.1, // Trigger earlier
-    rootMargin: '100px',
-  });
-  React.useEffect(() => {
-    if (inView) {
-      setVisibleItems((prevVisibleItems) => prevVisibleItems + 500); 
+  const rows = useMemo((): Row[] => {
+    if (!editor || !save) return [];
+    const current = editor.getSwitches(save);
+    const loaded = origin ? editor.getSwitches(origin) : [];
+    const previous = old ? editor.getSwitches(old) : null;
+
+    const row = (id: number, name: string): Row => {
+      const originState = !!loaded[id];
+      const oldState = previous ? !!previous[id] : null;
+      return {
+        id,
+        name,
+        state: !!current[id],
+        origin: originState,
+        old: oldState,
+        gap: oldState === null ? null : originState !== oldState,
+      };
+    };
+
+    // Slot 0 is never used by RPG Maker. With a database, unnamed switches are skipped.
+    const names = database?.system?.switches;
+    if (names?.length) {
+      return names.flatMap((name, id) => (id > 0 && name ? [row(id, name)] : []));
     }
-  }, [inView]);
+    return current.flatMap((_, id) => (id > 0 ? [row(id, `Switch#${id}`)] : []));
+  }, [editor, save, origin, old, database]);
 
-  
-  const switchesOf = (s: any): (boolean | null)[] => (editor && s ? editor.getSwitches(s) : []);
-  const switches = database?.system?.switches || []; // Tên các switch
-  const switchesState = switchesOf(save); // Trạng thái của các switch
-  const switchesStateOrigin = switchesOf(origin); // Trạng thái lúc mở file
-  const oldSwitchesState = switchesOf(old); // Trạng thái cũ của các switch
-
-  // Tạo mảng Switch với id, name, state, oldState, và gap
-  const switchData: (Switch)[] = (switches && switches.length > 0
-    ? switches.map((item: string | null, index: number) => {
-        const state = !!switchesState[index];
-        const oldState = oldSwitchesState[index] ? '1' : oldSwitchesState[index] === false ? '0' : '-';
-        const gap = oldSwitchesState[index] != null ? (switchesStateOrigin[index] === oldSwitchesState[index] ? '0' : '1') : '-';
-
-        return {
-          id: index,
-          name: item || '',
-          state,
-          oldState,
-          gap
-        };
-      })
-    : switchesState.map((value, index: number) => {
-        const state = !!value;
-        const oldState = oldSwitchesState[index] ? '1' : oldSwitchesState[index] === false ? '0' : '-';
-        const gap = oldSwitchesState[index] != null ? (switchesStateOrigin[index] === oldSwitchesState[index] ? '0' : '1') : '-';
-
-        return {
-          id: index,
-          name: `Switch#${index}`,
-          state,
-          oldState,
-          gap
-        };
-      })
+  const onToggle = useCallback(
+    (id: number, value: boolean) => update((ed, s) => ed.setSwitch(s, id, value)),
+    [update],
   );
 
-  const handleSwitchChange = useCallback((id: number, state: boolean) => {
-    update((ed, s) => ed.setSwitch(s, id, state));
-  }, [update]);
+  const columns = useMemo((): Column<Row>[] => [
+    { key: 'id', label: 'ID', width: '7%', placeholder: '#', value: (r) => r.id },
+    { key: 'name', label: 'Name', width: '30%', value: (r) => r.name },
+    {
+      key: 'state',
+      label: 'Value',
+      width: '20%',
+      title: CHANGED_HELP,
+      placeholder: '0 or 1',
+      value: (r) => r.state,
+      matches: (r, q) => q === '' || (q === '1' ? r.state : q === '0' ? !r.state : false),
+      render: (r) => (
+        <SwitchInput
+          type="checkbox"
+          checked={r.state}
+          $changed={r.state !== r.origin}
+          aria-label={`${r.name}`}
+          onChange={() => onToggle(r.id, !r.state)}
+        />
+      ),
+    },
+    { key: 'old', label: 'Old Value', width: '10%', title: OLD_COLUMN_HELP, value: (r) => r.old },
+    { key: 'gap', label: 'GAP', width: '10%', title: GAP_COLUMN_HELP, value: (r) => r.gap },
+  ], [onToggle]);
 
-  const filteredSwitches = switchData
-    .filter((sw) => {
-      const matchesId = sw.id.toString().includes(searchId);
-      const matchesName = sw.name != '' && sw.name.toLowerCase().includes(searchName.toLowerCase());
-      const matchesState = searchState == '' || (searchState == '1' ? sw.state == true : !sw.state);
-      const matchesOldState = sw.oldState?.toString().includes(searchOldState);
-      const matchesGap = sw.gap?.toString().includes(searchGap);
-
-      return matchesId && matchesName && matchesState && matchesOldState && matchesGap;
-    })
-    .sort((a, b) => {
-      const aValue = a[sortColumn as keyof Switch];
-      const bValue = b[sortColumn as keyof Switch];
-
-      if (sortDirection === 'asc') {
-        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-      } else {
-        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
-      }
-    });
-
-  const handleSort = (column: keyof Switch) => {
-    setSortColumn(column as string);
-    setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-  };
-
-  return (
-    <TableContainer>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHeaderCell width='5%'>
-              <span onClick={() => handleSort('id')} style={{ cursor: 'pointer' }}>ID</span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchId}
-                onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setSearchId(e.target.value)}
-              />
-            </TableHeaderCell>
-            <TableHeaderCell width='30%'>
-              <span onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}>Name</span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchName}
-                onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setSearchName(e.target.value)}
-              />
-            </TableHeaderCell>
-            <TableHeaderCell width='20%'>
-              <span onClick={() => handleSort('state')} style={{ cursor: 'pointer' }}>Value</span>
-              <SearchInput
-                type="text"
-                placeholder="Search 0 or 1"
-                value={searchState}
-                onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => {
-                  if (e.target.value != '0' && e.target.value != '1' && e.target.value != '')
-                    return
-                  setSearchState(e.target.value)
-                }}
-              />
-            </TableHeaderCell>
-            <TableHeaderCell width='10%'>
-              <span onClick={() => handleSort('oldState')} style={{ cursor: 'pointer' }}>Old Value</span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchOldState}
-                onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setSearchOldState(e.target.value)}
-              />
-            </TableHeaderCell>
-            <TableHeaderCell width='10%'>
-              <span onClick={() => handleSort('gap')} style={{ cursor: 'pointer' }}>GAP</span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchGap}
-                onChange={(e: { target: { value: React.SetStateAction<string>; }; }) => setSearchGap(e.target.value)}
-              />
-            </TableHeaderCell>
-          </TableRow>
-        </TableHeader>
-        <tbody>
-          {filteredSwitches.slice(0, visibleItems).map((sw: any, index: number) => (
-            <TableRow key={sw.id} ref={index === visibleItems - 1 ? ref : null}>
-              <TableCell>{sw.id}</TableCell>
-              <TableCell>{sw.name}</TableCell>
-              <TableCell>
-                <SwitchInput
-                  type="checkbox"
-                  checked={sw.state}
-                  onChange={() => handleSwitchChange(sw.id, !sw.state)}
-                />
-              </TableCell>
-              <TableCell>{sw.oldState}</TableCell>
-              <TableCell>{sw.gap}</TableCell>
-            </TableRow>
-          ))}
-        </tbody>
-      </Table>
-    </TableContainer>
-  );
+  return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} />;
 };
 
 export default SwitchesContent;

@@ -29,6 +29,16 @@ const FileName = styled.span`
   margin-left: 16px; /* Thay đổi khoảng cách giữa FileName và nút Upload */
 `;
 
+const Unsaved = styled.span`
+  margin-left: 10px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: ${({ theme }) => theme.changedBackground};
+  border: 1px solid ${({ theme }) => theme.changedBorder};
+`;
+
 const IconButton = styled.div`
   cursor: pointer;
   color: ${({ theme }) => theme.color};
@@ -70,7 +80,10 @@ const Header: React.FC<HeaderProps> = ({ toggleTheme, isDarkMode }) => {
           <FontAwesomeIcon icon={faFileUpload} />
         </Tooltip>
       </IconButton>
-      <FileName>{content.fileName ? `${content.fileName} | ${content.gameName}` : ''}</FileName>
+      <FileName title={content.filePath}>
+        {content.fileName ? `${content.fileName} | ${content.gameName}` : ''}
+        {content.dirty && <Unsaved title="Changes not saved yet (Ctrl+S to save)">● Unsaved</Unsaved>}
+      </FileName>
       <IconButton onClick={save}>
         <Tooltip text='Save File (Ctrl+S)' width='300%' placement='bottom' fontSize='12px'>
           <FontAwesomeIcon icon={faSave} />

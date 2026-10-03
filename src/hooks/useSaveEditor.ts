@@ -14,7 +14,7 @@ export const useSaveEditor = () => {
     (change: (editor: SaveEditor, save: any) => any) => {
       setContent((prev) =>
         prev.format && prev.saveData
-          ? { ...prev, saveData: change(prev.format.editor, prev.saveData) }
+          ? { ...prev, saveData: change(prev.format.editor, prev.saveData), dirty: true }
           : prev,
       );
     },

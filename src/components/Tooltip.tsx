@@ -6,6 +6,8 @@ import StyledText from "./StyledText";
 const TooltipWrapper = styled.div`
   position: relative;
   display: inline-block;
+  max-width: 100%; /* lets long content inside (e.g. item names) truncate instead of overflowing */
+  vertical-align: middle;
 `;
 
 // Tooltip Text

@@ -1,30 +1,16 @@
 import { ActorField, ActorView, InventoryKind, SaveEditor } from '../types';
 import { MObject, MValue } from '../marshal/types';
-import {
-  arrayItems,
-  decodeString,
-  getField,
-  getIntKey,
-  getSymbolKey,
-  isNode,
-  makeString,
-  numberLike,
-  setArrayItem,
-  setField,
-  setIntKey,
-  toDisplayValue,
-  toNumber,
-} from '../marshal/helpers';
+import { decodeString, getSymbolKey, isNode, makeString, numberLike, toDisplayValue, toNumber } from '../marshal/helpers';
+import { PatchedView, patchField, patchIndex, patchIntKey, RgssSave } from './patches';
 
-/** An RGSS save file: the Marshal dumps it contains, in order. */
-export type RgssSave = MValue[];
+export type { RgssSave } from './patches';
 
 export type RgssPart = 'party' | 'actors' | 'switches' | 'variables';
 
 /** How an RGSS version (XP / VX / VX Ace) lays out the data the editor touches. */
 export interface RgssEditorSpec {
-  /** Finds Game_Party / Game_Actors / Game_Switches / Game_Variables in the save. */
-  locate(save: RgssSave, part: RgssPart): MObject | undefined;
+  /** Finds Game_Party / Game_Actors / Game_Switches / Game_Variables in the save's dumps. */
+  locate(dumps: MValue[], part: RgssPart): MObject | undefined;
   /** Instance variable per stat; stats the engine doesn't have are omitted. */
   stats: Partial<Record<Exclude<ActorField, 'exp'>, string>>;
   /** VX Ace keeps EXP per class (@exp Hash); XP and VX keep a total (@exp Integer). */
@@ -55,8 +41,8 @@ const INVENTORY_FIELDS: Record<InventoryKind, string> = {
  * normally the second dump, but scripts may write extra dumps (e.g. a
  * thumbnail between header and contents), so every dump is searched.
  */
-export const locateInContents = (save: RgssSave, part: RgssPart): MObject | undefined => {
-  for (const dump of save ?? []) {
+export const locateInContents = (dumps: MValue[], part: RgssPart): MObject | undefined => {
+  for (const dump of dumps ?? []) {
     const value = getSymbolKey(dump, part);
     if (isNode(value, 'object')) return value;
   }
@@ -71,76 +57,80 @@ const CLASS_NAMES: Record<RgssPart, string> = {
 };
 
 /** XP/VX: each $game_* object is its own dump; find it by class name. */
-export const locateByClass = (save: RgssSave, part: RgssPart): MObject | undefined =>
-  save?.find((dump): dump is MObject => isNode(dump, 'object') && dump.className.name === CLASS_NAMES[part]);
+export const locateByClass = (dumps: MValue[], part: RgssPart): MObject | undefined =>
+  dumps?.find((dump): dump is MObject => isNode(dump, 'object') && dump.className.name === CLASS_NAMES[part]);
 
 /**
- * Setters edit a structuredClone of the save: the Marshal tree has shared and
- * cyclic references (e.g. VX Ace Game_ActionResult#@battler -> its actor),
- * which a path copy would split into separate objects.
+ * Editor for an RGSS save. Getters read through the save's patches; setters
+ * add a patch and return a new save (the dumps themselves are never mutated).
  */
-function edit(save: RgssSave, change: (copy: RgssSave) => void): RgssSave {
-  const copy = structuredClone(save);
-  change(copy);
-  return copy;
-}
-
 export function createRgssEditor(spec: RgssEditorSpec): SaveEditor<RgssSave> {
-  const requirePart = (save: RgssSave, part: RgssPart): MObject => {
-    const obj = spec.locate(save, part);
-    if (!obj) throw new Error(`Save has no ${part} data`);
+  const view = (save: RgssSave) => new PatchedView(save.patches);
+  const part = (save: RgssSave, name: RgssPart) => spec.locate(save.dumps, name);
+  const requirePart = (save: RgssSave, name: RgssPart): MObject => {
+    const obj = part(save, name);
+    if (!obj) throw new Error(`Save has no ${name} data`);
     return obj;
   };
-  const actorList = (save: RgssSave) => arrayItems(getField(spec.locate(save, 'actors'), '@data'));
+  const actorList = (save: RgssSave) => {
+    const v = view(save);
+    return v.items(v.field(part(save, 'actors'), '@data'));
+  };
   const requireActor = (save: RgssSave, slot: number): MObject => {
     const actor = actorList(save)[slot];
     if (!isNode(actor, 'object')) throw new Error(`No actor in slot ${slot}`);
     return actor;
   };
-  const classIdOf = (actor: MValue) => toNumber(getField(actor, '@class_id')) ?? 1;
-  const expOf = (actor: MValue) =>
-    spec.expPerClass ? getIntKey(getField(actor, '@exp'), classIdOf(actor)) : getField(actor, '@exp');
-  const paramsOf = (actor: MValue): MValue[] =>
-    'field' in spec.params
-      ? arrayItems(getField(actor, spec.params.field))
-      : spec.params.fields.map((field) => getField(actor, field) ?? null);
-  const stat = (actor: MValue, field: Exclude<ActorField, 'exp'>) => {
-    const name = spec.stats[field];
-    return name ? toNumber(getField(actor, name)) : undefined;
+  const classIdOf = (v: PatchedView, actor: MValue) => toNumber(v.field(actor, '@class_id')) ?? 1;
+  const requireArray = (value: MValue | undefined, what: string) => {
+    if (!isNode(value, 'array')) throw new Error(`Save has no ${what}`);
+    return value;
+  };
+  const requireHash = (value: MValue | undefined, what: string) => {
+    if (!isNode(value, 'hash')) throw new Error(`Save has no ${what}`);
+    return value;
   };
 
   return {
-    getGold: (save) => toNumber(getField(spec.locate(save, 'party'), '@gold')) ?? 0,
-    setGold: (save, gold) =>
-      edit(save, (copy) => {
-        const party = requirePart(copy, 'party');
-        setField(party, '@gold', numberLike(getField(party, '@gold'), gold));
-      }),
+    getGold: (save) => toNumber(view(save).field(part(save, 'party'), '@gold')) ?? 0,
+    setGold: (save, gold) => {
+      const party = requirePart(save, 'party');
+      return patchField(save, party, '@gold', numberLike(view(save).field(party, '@gold'), gold));
+    },
 
     getInventory: (save, kind) => {
-      const hash = getField(spec.locate(save, 'party'), INVENTORY_FIELDS[kind]);
+      const v = view(save);
       const result: Record<number, number> = {};
-      if (isNode(hash, 'hash')) {
-        for (const [key, value] of hash.entries) {
-          if (typeof key === 'number') result[key] = toNumber(value) ?? 0;
-        }
+      for (const [id, count] of v.intEntries(v.field(part(save, 'party'), INVENTORY_FIELDS[kind]))) {
+        result[id] = toNumber(count) ?? 0;
       }
       return result;
     },
-    setInventoryCount: (save, kind, id, count) =>
-      edit(save, (copy) => {
-        const hash = getField(requirePart(copy, 'party'), INVENTORY_FIELDS[kind]);
-        if (!isNode(hash, 'hash')) throw new Error(`Save has no party ${kind}`);
-        setIntKey(hash, id, count);
-      }),
+    setInventoryCount: (save, kind, id, count) => {
+      const v = view(save);
+      const hash = requireHash(v.field(requirePart(save, 'party'), INVENTORY_FIELDS[kind]), `party ${kind}`);
+      return patchIntKey(save, hash, id, count);
+    },
 
-    getActors: (save) =>
-      actorList(save).flatMap((actor, slot): ActorView[] => {
+    getActors: (save) => {
+      const v = view(save);
+      const stat = (actor: MValue, field: Exclude<ActorField, 'exp'>) => {
+        const name = spec.stats[field];
+        return name ? toNumber(v.field(actor, name)) : undefined;
+      };
+      const paramsOf = (actor: MValue): MValue[] =>
+        'field' in spec.params
+          ? v.items(v.field(actor, spec.params.field))
+          : spec.params.fields.map((field) => v.field(actor, field) ?? null);
+      const expOf = (actor: MValue) =>
+        spec.expPerClass ? v.intKey(v.field(actor, '@exp'), classIdOf(v, actor)) : v.field(actor, '@exp');
+
+      return actorList(save).flatMap((actor, slot): ActorView[] => {
         if (!isNode(actor, 'object')) return [];
         return [{
           slot,
-          name: decodeString(getField(actor, '@name')) ?? '',
-          paramPlus: paramsOf(actor).map((v) => toNumber(v) ?? 0),
+          name: decodeString(v.field(actor, '@name')) ?? '',
+          paramPlus: paramsOf(actor).map((value) => toNumber(value) ?? 0),
           paramLabels: spec.params.labels,
           statLabels: spec.statLabels,
           limits: ACTOR_LIMITS,
@@ -150,65 +140,60 @@ export function createRgssEditor(spec: RgssEditorSpec): SaveEditor<RgssSave> {
           level: stat(actor, 'level'),
           exp: toNumber(expOf(actor)),
         }];
-      }),
-    setActorField: (save, slot, field, rawValue) =>
-      edit(save, (copy) => {
-        const actor = requireActor(copy, slot);
-        const value = clamp(rawValue, ACTOR_LIMITS?.[field]);
-        if (field === 'exp') {
-          if (!spec.expPerClass) {
-            setField(actor, '@exp', numberLike(getField(actor, '@exp'), value));
-            return;
-          }
-          const exp = getField(actor, '@exp');
-          if (!isNode(exp, 'hash')) throw new Error('Actor has no EXP table');
-          const classId = classIdOf(actor);
-          setIntKey(exp, classId, numberLike(getIntKey(exp, classId), value));
-          return;
-        }
-        const name = spec.stats[field];
-        if (!name) throw new Error(`This engine has no ${field}`);
-        setField(actor, name, numberLike(getField(actor, name), value));
-      }),
-    setActorParamPlus: (save, slot, index, value) =>
-      edit(save, (copy) => {
-        const actor = requireActor(copy, slot);
-        if ('field' in spec.params) {
-          const params = getField(actor, spec.params.field);
-          if (!isNode(params, 'array')) throw new Error('Actor has no bonus params');
-          setArrayItem(params, index, numberLike(params.items[index], value));
-          return;
-        }
-        const field = spec.params.fields[index];
-        if (!field) throw new Error(`No bonus param #${index}`);
-        setField(actor, field, numberLike(getField(actor, field), value));
-      }),
+      });
+    },
+    setActorField: (save, slot, field, rawValue) => {
+      const v = view(save);
+      const actor = requireActor(save, slot);
+      const value = clamp(rawValue, ACTOR_LIMITS?.[field]);
+      if (field === 'exp') {
+        if (!spec.expPerClass) return patchField(save, actor, '@exp', numberLike(v.field(actor, '@exp'), value));
+        const exp = requireHash(v.field(actor, '@exp'), 'EXP table for this actor');
+        const classId = classIdOf(v, actor);
+        return patchIntKey(save, exp, classId, numberLike(v.intKey(exp, classId), value));
+      }
+      const name = spec.stats[field];
+      if (!name) throw new Error(`This engine has no ${field}`);
+      return patchField(save, actor, name, numberLike(v.field(actor, name), value));
+    },
+    setActorParamPlus: (save, slot, index, value) => {
+      const v = view(save);
+      const actor = requireActor(save, slot);
+      if ('field' in spec.params) {
+        const params = requireArray(v.field(actor, spec.params.field), 'bonus params for this actor');
+        return patchIndex(save, params, index, numberLike(v.items(params)[index], value));
+      }
+      const field = spec.params.fields[index];
+      if (!field) throw new Error(`No bonus param #${index}`);
+      return patchField(save, actor, field, numberLike(v.field(actor, field), value));
+    },
 
-    getSwitches: (save) =>
-      arrayItems(getField(spec.locate(save, 'switches'), '@data')).map((v) => (v === null ? null : v === true)),
-    setSwitch: (save, id, value) =>
-      edit(save, (copy) => {
-        const data = getField(requirePart(copy, 'switches'), '@data');
-        if (!isNode(data, 'array')) throw new Error('Save has no switch data');
-        setArrayItem(data, id, value);
-      }),
+    getSwitches: (save) => {
+      const v = view(save);
+      return v.items(v.field(part(save, 'switches'), '@data')).map((s) => (s === null ? null : s === true));
+    },
+    setSwitch: (save, id, value) => {
+      const v = view(save);
+      const data = requireArray(v.field(requirePart(save, 'switches'), '@data'), 'switch data');
+      return patchIndex(save, data, id, value);
+    },
 
     getVariables: (save) => {
+      const v = view(save);
       const result: Record<number, any> = {};
-      arrayItems(getField(spec.locate(save, 'variables'), '@data')).forEach((value, id) => {
+      v.items(v.field(part(save, 'variables'), '@data')).forEach((value, id) => {
         result[id] = toDisplayValue(value);
       });
       return result;
     },
-    setVariable: (save, id, value) =>
-      edit(save, (copy) => {
-        const data = getField(requirePart(copy, 'variables'), '@data');
-        if (!isNode(data, 'array')) throw new Error('Save has no variable data');
-        const stored: MValue =
-          typeof value === 'number' ? numberLike(data.items[id], value)
-          : typeof value === 'boolean' || value === null ? value
-          : makeString(String(value));
-        setArrayItem(data, id, stored);
-      }),
+    setVariable: (save, id, value) => {
+      const v = view(save);
+      const data = requireArray(v.field(requirePart(save, 'variables'), '@data'), 'variable data');
+      const stored: MValue =
+        typeof value === 'number' ? numberLike(v.items(data)[id], value)
+        : typeof value === 'boolean' || value === null ? value
+        : makeString(String(value));
+      return patchIndex(save, data, id, stored);
+    },
   };
 }

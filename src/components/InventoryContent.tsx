@@ -1,27 +1,21 @@
-import React, { useCallback, useState } from 'react';
-import {
-  SearchInput,
-  TableCell,
-  TableContainer,
-  TableHeader,
-  TableHeaderCell,
-  Table,
-  TableRow,
-  QuantityInput,
-} from '../styles/ItemsContentStyles';
+import React, { useCallback, useMemo } from 'react';
+import { QuantityInput, Truncate } from '../styles/ItemsContentStyles';
 import Tooltip from './Tooltip';
-import { useInView } from 'react-intersection-observer';
+import DataTable, { Column } from './DataTable';
 import { useSaveEditor } from '../hooks/useSaveEditor';
 import { InventoryKind } from '../formats';
+import { CHANGED_HELP, GAP_COLUMN_HELP, OLD_COLUMN_HELP } from './columnHelp';
 
-// Khai báo kiểu dữ liệu cho các mục
-interface Item {
-  id: string | number;
+interface Row {
+  id: number;
   name: string;
-  description?: string;
+  description: string;
   quantity: number;
-  oldQuantity: number;
-  gap: number;
+  /** Quantity when the file was opened. */
+  origin: number;
+  /** Quantity in the previously opened save of this game; null when there is none. */
+  old: number | null;
+  gap: number | null;
 }
 
 interface InventoryContentProps {
@@ -33,189 +27,76 @@ interface InventoryContentProps {
 /** Items, weapons or armors held by the party. */
 const InventoryContent: React.FC<InventoryContentProps> = ({ kind, label }) => {
   const { editor, save, origin, old, database, update } = useSaveEditor();
-  const [searchId, setSearchId] = useState<string>('');
-  const [searchName, setSearchName] = useState<string>('');
-  const [searchQuantity, setSearchQuantity] = useState<string>('');
-  const [searchOldQuantity, setSearchOldQuantity] = useState<string>('');
-  const [searchGap, setSearchGap] = useState<string>('');
-  const [sortColumn, setSortColumn] = useState<string>('id'); // Cột sắp xếp hiện tại
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc'); // Hướng sắp xếp
-  const [visibleItems, setVisibleItems] = useState<number>(500); // Number of items to display initially
 
-  const { ref, inView } = useInView({
-    threshold: 0.1, // Trigger earlier
-    rootMargin: '100px',
-  });
-  React.useEffect(() => {
-    if (inView) {
-      setVisibleItems((prevVisibleItems) => prevVisibleItems + 500); 
+  const rows = useMemo((): Row[] => {
+    if (!editor || !save) return [];
+    const current = editor.getInventory(save, kind);
+    const loaded = origin ? editor.getInventory(origin, kind) : {};
+    const previous = old ? editor.getInventory(old, kind) : null;
+
+    const row = (id: number, name: string, description = ''): Row => {
+      const originQty = loaded[id] ?? 0;
+      const oldQty = previous ? previous[id] ?? 0 : null;
+      return {
+        id,
+        name,
+        description,
+        quantity: current[id] ?? 0,
+        origin: originQty,
+        old: oldQty,
+        gap: oldQty === null ? null : originQty - oldQty,
+      };
+    };
+
+    const entries = database?.[kind];
+    if (!entries?.length) {
+      return Object.keys(current).map((key) => row(Number(key), `${label}#${key}`));
     }
-  }, [inView]);
+    return entries
+      .filter((entry): entry is NonNullable<typeof entry> => !!entry && !!entry.name?.trim())
+      .map((entry) => row(entry.id, entry.name, entry.description));
+  }, [editor, save, origin, old, database, kind, label]);
 
-  const inventoryOf = (s: any): Record<number, number> => (editor && s ? editor.getInventory(s, kind) : {});
-  const itemsOfPlayerOrigin = inventoryOf(origin);
-  const itemsOfPlayer = inventoryOf(save);
-  const itemsOfPlayerOld = inventoryOf(old);
-  const databaseEntries = database?.[kind];
-
-  const handleQuantityChange = useCallback((id: number, value: number) => {
-    update((ed, s) => ed.setInventoryCount(s, kind, id, value));
-  }, [update, kind]);
-
-  // Tính toán giá trị `quantity`, `oldQuantity`, và `gap` trước khi sắp xếp
-  const items: Item[] = (databaseEntries && databaseEntries.length > 0
-    ? databaseEntries.map((item) => {
-        if (!item) return { id: 0, name: '', quantity: 0, oldQuantity: 0, gap: 0 }; // Handle null case
-        const quantity = itemsOfPlayer[item?.id] || 0;
-        const quantityOrigin = itemsOfPlayerOrigin[item?.id] || 0;
-        const oldQuantity = itemsOfPlayerOld[item?.id] || 0;
-        const gap = quantityOrigin - oldQuantity;
-
-        return {
-          ...item,
-          quantity,
-          oldQuantity,
-          gap
-        };
-      })
-    : Object.entries(itemsOfPlayer).map(([key, quantity]) => {
-        const id = Number(key);
-        const quantityOrigin = itemsOfPlayerOrigin[id] || 0;
-        const oldQuantity = itemsOfPlayerOld[id] || 0;
-        const gap = quantityOrigin - oldQuantity;
-
-        return {
-          id: Number(key) || key,
-          name: `${label}#${key}`,
-          description: '',
-          quantity: quantity || 0,
-          oldQuantity,
-          gap
-        };
-      })
-  ).filter((item: Item) => {
-    const matchesId = item?.id?.toString().includes(searchId);
-    const matchesName = item?.name?.toLowerCase().includes(searchName.toLowerCase());
-    const matchesQuantity = item.quantity.toString().includes(searchQuantity);
-    const matchesOldQuantity = item.oldQuantity.toString().includes(searchOldQuantity);
-    const matchesGap = item.gap.toString().includes(searchGap);
-
-    return matchesId && matchesName && matchesQuantity && matchesOldQuantity && matchesGap && item?.name?.trim();
-  }).sort((a: { [x: string]: any; }, b: { [x: string]: any; }) => {
-    const aValue = a[sortColumn as keyof Item];
-    const bValue = b[sortColumn as keyof Item];
-
-    if (sortDirection === 'asc') {
-      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-    } else {
-      return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
-    }
-  });
-
-  const handleSort = (column: keyof Item) => {
-    setSortColumn(column as string);
-    setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-  };
-
-  return (
-    <TableContainer>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHeaderCell width='5%' className="id-column">
-              <span
-                onClick={() => handleSort('id')} style={{ cursor: 'pointer' }}
-              >
-                ID
-              </span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchId}
-                onChange={(e) => setSearchId(e.target.value)}
-              />
-            </TableHeaderCell>
-            <TableHeaderCell width='30%' className="name-column">
-              <span
-                onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}
-              >
-                Name
-              </span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchName}
-                onChange={(e) => setSearchName(e.target.value)}
-              />
-            </TableHeaderCell>
-            <TableHeaderCell width='20%' className="quantity-column">
-              <span
-                onClick={() => handleSort('quantity')} style={{ cursor: 'pointer' }}
-              >
-                Quantity
-              </span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchQuantity}
-                onChange={(e) => setSearchQuantity(e.target.value)}
-              />
-            </TableHeaderCell>
-            <TableHeaderCell width='10%' className="old-quantity-column">
-              <span
-                onClick={() => handleSort('oldQuantity')} style={{ cursor: 'pointer' }}
-              >
-                Old Qty
-              </span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchOldQuantity}
-                onChange={(e) => setSearchOldQuantity(e.target.value)}
-              />
-            </TableHeaderCell>
-            <TableHeaderCell width='10%' className="gap-column">
-              <span
-                onClick={() => handleSort('gap')} style={{ cursor: 'pointer' }}
-              >
-                GAP
-              </span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchGap}
-                onChange={(e) => setSearchGap(e.target.value)}
-              />
-            </TableHeaderCell>
-          </TableRow>
-        </TableHeader>
-        <tbody>
-          {items.slice(0, visibleItems).map((item: Item, index: number) => {
-            return (
-              <TableRow key={item?.id} ref={index === visibleItems - 1 ? ref : null}>
-                <TableCell className="id-column">{item?.id}</TableCell>
-                <TableCell className="name-column">
-                  <Tooltip text={item?.description} placement={index === items.length-1 ? 'top' : 'right'}>
-                    {item?.name}
-                  </Tooltip>
-                </TableCell>
-                <TableCell className="quantity-column">
-                  <QuantityInput
-                    type="number"
-                    min="0"
-                    value={item.quantity}
-                    onChange={(e) => handleQuantityChange(Number(item?.id), Number(e.target.value))}
-                  />
-                </TableCell>
-                <TableCell className="old-quantity-column">{item.oldQuantity}</TableCell>
-                <TableCell className="gap-column">{item.gap}</TableCell>
-              </TableRow>
-            );
-          })}
-        </tbody>
-      </Table>
-    </TableContainer>
+  const onQuantityChange = useCallback(
+    (id: number, value: number) => update((ed, s) => ed.setInventoryCount(s, kind, id, value)),
+    [update, kind],
   );
+
+  const columns = useMemo((): Column<Row>[] => [
+    { key: 'id', label: 'ID', width: '7%', placeholder: '#', value: (r) => r.id },
+    {
+      key: 'name',
+      label: 'Name',
+      width: '30%',
+      value: (r) => r.name,
+      render: (r, index, visible) => (
+        <Tooltip text={r.description} placement={index === visible.length - 1 ? 'top' : 'right'}>
+          <Truncate title={r.name}>{r.name}</Truncate>
+        </Tooltip>
+      ),
+    },
+    {
+      key: 'quantity',
+      label: 'Quantity',
+      width: '20%',
+      title: CHANGED_HELP,
+      value: (r) => r.quantity,
+      render: (r) => (
+        <QuantityInput
+          type="number"
+          min="0"
+          value={r.quantity}
+          $changed={r.quantity !== r.origin}
+          aria-label={`${r.name} quantity`}
+          onChange={(e) => onQuantityChange(r.id, Number(e.target.value))}
+        />
+      ),
+    },
+    { key: 'old', label: 'Old Qty', width: '10%', title: OLD_COLUMN_HELP, value: (r) => r.old },
+    { key: 'gap', label: 'GAP', width: '10%', title: GAP_COLUMN_HELP, value: (r) => r.gap },
+  ], [onQuantityChange]);
+
+  return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} />;
 };
 
 export default InventoryContent;

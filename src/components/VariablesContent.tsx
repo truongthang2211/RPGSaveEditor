@@ -1,217 +1,142 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import {
-  SearchInput,
-  TableCell,
-  TableContainer,
-  TableHeader,
-  TableHeaderCell,
-  Table,
-  TableRow,
-  QuantityInput,
-} from '../styles/ItemsContentStyles';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { QuantityInput } from '../styles/ItemsContentStyles';
 import { getDifferences } from '../utils/textUtils';
-import { useInView } from 'react-intersection-observer';
+import DataTable, { CellValue, Column } from './DataTable';
 import { useSaveEditor } from '../hooks/useSaveEditor';
+import { CHANGED_HELP, GAP_COLUMN_HELP, OLD_COLUMN_HELP } from './columnHelp';
 
-// Khai báo kiểu dữ liệu cho các mục
-interface Item {
-  id: string | number;
+type VariableValue = number | string | boolean | null;
+
+interface Row {
+  id: number;
   name: string;
-  quantity: number;
-  oldQuantity: number;
-  gap: number | string;
+  value: VariableValue;
+  /** Value when the file was opened. */
+  origin: VariableValue;
+  /** Value in the previously opened save of this game; null when there is none. */
+  old: CellValue;
+  gap: CellValue;
 }
+
+const NUMBER = /^-?\d+(\.\d+)?$/;
+
+const asCell = (value: VariableValue): CellValue => value ?? 0;
+
+/** Numeric difference, or the differing characters for text values. */
+function gapOf(origin: VariableValue, old: VariableValue): CellValue {
+  const a = asCell(origin);
+  const b = asCell(old);
+  if (typeof a === 'number' && typeof b === 'number') return a - b;
+  return getDifferences(String(a), String(b));
+}
+
+/**
+ * Keeps a variable's type: numeric variables only take valid numbers (an empty
+ * or partial entry isn't written and is restored on blur), text variables stay
+ * text even when they look like numbers.
+ */
+const VariableInput: React.FC<{
+  value: VariableValue;
+  changed: boolean;
+  label: string;
+  onCommit: (value: number | string) => void;
+}> = ({ value, changed, label, onCommit }) => {
+  const isText = typeof value === 'string';
+  const shown = value === null || typeof value === 'boolean' ? String(value ?? 0) : String(value);
+  const [draft, setDraft] = useState(shown);
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    if (!editing) setDraft(shown);
+  }, [shown, editing]);
+
+  const invalid = !isText && !NUMBER.test(draft.trim());
+
+  return (
+    <QuantityInput
+      type="text"
+      inputMode={isText ? 'text' : 'numeric'}
+      value={draft}
+      $changed={changed}
+      aria-label={label}
+      aria-invalid={invalid}
+      title={invalid ? 'Enter a number' : undefined}
+      onFocus={() => setEditing(true)}
+      onBlur={() => {
+        setEditing(false);
+        setDraft(shown);
+      }}
+      onChange={(e) => {
+        const text = e.target.value;
+        setDraft(text);
+        if (isText) onCommit(text);
+        else if (NUMBER.test(text.trim())) onCommit(Number(text));
+      }}
+    />
+  );
+};
 
 const VariablesContent: React.FC = () => {
   const { editor, save, origin, old, database, update } = useSaveEditor();
-  const [searchId, setSearchId] = useState<string>('');
-  const [searchName, setSearchName] = useState<string>('');
-  const [searchQuantity, setSearchQuantity] = useState<string>('');
-  const [searchOldQuantity, setSearchOldQuantity] = useState<string>('');
-  const [searchGap, setSearchGap] = useState<string>('');
-  const [sortColumn, setSortColumn] = useState<string>('id');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [visibleItems, setVisibleItems] = useState<number>(500); // Number of items to display initially
 
-  const { ref, inView } = useInView({
-    threshold: 0.1, // Trigger earlier
-    rootMargin: '100px',
-  });
-  React.useEffect(() => {
-    if (inView) {
-      setVisibleItems((prevVisibleItems) => prevVisibleItems + 500); 
+  const rows = useMemo((): Row[] => {
+    if (!editor || !save) return [];
+    const current = editor.getVariables(save);
+    const loaded = origin ? editor.getVariables(origin) : {};
+    const previous = old ? editor.getVariables(old) : null;
+
+    const row = (id: number, name: string): Row => {
+      const originValue = loaded[id] ?? null;
+      const oldValue = previous ? previous[id] ?? null : undefined;
+      return {
+        id,
+        name,
+        value: current[id] ?? null,
+        origin: originValue,
+        old: oldValue === undefined ? null : asCell(oldValue),
+        gap: oldValue === undefined ? null : gapOf(originValue, oldValue),
+      };
+    };
+
+    // Slot 0 is never used by RPG Maker. With a database, unnamed variables are skipped.
+    const names = database?.system?.variables;
+    if (names?.length) {
+      return names.flatMap((name, id) => (id > 0 && name ? [row(id, name)] : []));
     }
-  }, [inView]);
+    return Object.keys(current)
+      .map(Number)
+      .filter((id) => id > 0)
+      .map((id) => row(id, `Variable#${id}`));
+  }, [editor, save, origin, old, database]);
 
-  const variablesOf = (s: any): Record<number, any> => (editor && s ? editor.getVariables(s) : {});
-  const itemsOfPlayerOrigin = variablesOf(origin);
-  const itemsOfPlayer = variablesOf(save);
-  const itemsOfPlayerOld = variablesOf(old);
-
-  const handleQuantityChange = useCallback((id: number, value: number | string) => {
-    const normalizedValue = typeof value === 'string' && !isNaN(Number(value))
-      ? Number(value)
-      : value;
-
-    update((ed, s) => ed.setVariable(s, id, normalizedValue));
-  }, [update]);
-
-  const items: Item[] = useMemo(() => {
-    const variables = database?.system?.variables || [];
-    
-    return (variables && variables.length > 0
-      ? variables.map((item: string | null, ind: number) => {
-          const quantity = itemsOfPlayer[ind] || 0;
-          const quantityOrigin = itemsOfPlayerOrigin[ind] || 0;
-          const oldQuantity = itemsOfPlayerOld[ind] || 0;
-          const gap = Number.isNaN(quantityOrigin - oldQuantity)
-            ? getDifferences(quantityOrigin.toString(), oldQuantity.toString())
-            : (quantityOrigin - oldQuantity);
-
-          return {
-            id: ind,
-            name: item || '',
-            quantity,
-            oldQuantity,
-            gap,
-          };
-        })
-      : Object.entries(itemsOfPlayer).map(([key, quantity]) => {
-          const ind = Number(key);
-          const quantityOrigin = itemsOfPlayerOrigin[ind] || 0;
-          const oldQuantity = itemsOfPlayerOld[ind] || 0;
-          const gap = Number.isNaN(quantityOrigin - oldQuantity)
-            ? getDifferences(quantityOrigin.toString(), oldQuantity.toString())
-            : (quantityOrigin - oldQuantity);
-
-          return {
-            id: ind,
-            name: `Variable#${key}`,
-            quantity: quantity || 0,
-            oldQuantity,
-            gap,
-          };
-        })
-    ).filter((item: Item) => {
-      const matchesId = item.id.toString().includes(searchId);
-      const matchesName = item.name.toLowerCase().includes(searchName.toLowerCase());
-      const matchesQuantity = item.quantity.toString().includes(searchQuantity);
-      const matchesOldQuantity = item.oldQuantity.toString().includes(searchOldQuantity);
-      const matchesGap = item.gap.toString().includes(searchGap);
-
-      return matchesId && matchesName && matchesQuantity && matchesOldQuantity && matchesGap && item?.name?.trim();
-    }).sort((a: { [x: string]: any; }, b: { [x: string]: any; }) => {
-      const aValue = a[sortColumn as keyof Item];
-      const bValue = b[sortColumn as keyof Item];
-
-      if (sortDirection === 'asc') {
-        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-      } else {
-        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
-      }
-    });
-  }, [database, itemsOfPlayer, itemsOfPlayerOrigin, itemsOfPlayerOld, searchId, searchName, searchQuantity, searchOldQuantity, searchGap, sortColumn, sortDirection]);
-
-  const handleSort = (column: keyof Item) => {
-    setSortColumn(column as string);
-    setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-  };
-  return (
-    <TableContainer>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHeaderCell width='5%' className="id-column">
-              <span
-                onClick={() => handleSort('id')} style={{ cursor: 'pointer' }}
-              >
-                ID
-              </span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchId}
-                onChange={(e) => setSearchId(e.target.value)}
-              />
-            </TableHeaderCell>
-            <TableHeaderCell width='30%' className="name-column">
-              <span
-                onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}
-              >
-                Name
-              </span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchName}
-                onChange={(e) => setSearchName(e.target.value)}
-              />
-            </TableHeaderCell>
-            <TableHeaderCell width='20%' className="quantity-column">
-              <span
-                onClick={() => handleSort('quantity')} style={{ cursor: 'pointer' }}
-              >
-                Quantity
-              </span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchQuantity}
-                onChange={(e) => setSearchQuantity(e.target.value)}
-              />
-            </TableHeaderCell>
-            <TableHeaderCell width='10%' className="old-quantity-column">
-              <span
-                onClick={() => handleSort('oldQuantity')} style={{ cursor: 'pointer' }}
-              >
-                Old Qty
-              </span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchOldQuantity}
-                onChange={(e) => setSearchOldQuantity(e.target.value)}
-              />
-            </TableHeaderCell>
-            <TableHeaderCell width='10%' className="gap-column">
-              <span
-                onClick={() => handleSort('gap')} style={{ cursor: 'pointer' }}
-              >
-                GAP
-              </span>
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchGap}
-                onChange={(e) => setSearchGap(e.target.value)}
-              />
-            </TableHeaderCell>
-          </TableRow>
-        </TableHeader>
-        <tbody>
-          {items.slice(0, visibleItems).map((item: Item, index: number) => {
-
-
-            return (
-              <TableRow key={item?.id} ref={index === visibleItems - 1 ? ref : null}>
-                <TableCell className="id-column">{item?.id}</TableCell>
-                <TableCell className="name-column">{item?.name}</TableCell>
-                <TableCell className="quantity-column">
-                  <QuantityInput
-                    type="text"
-                    value={item?.quantity}
-                    onChange={(e) => handleQuantityChange(Number(item?.id), e.target.value)}
-                  />
-                </TableCell>
-                <TableCell className="old-quantity-column">{item?.oldQuantity}</TableCell>
-                <TableCell className="gap-column">{item?.gap}</TableCell>
-              </TableRow>
-            );
-          })}
-        </tbody>
-      </Table>
-    </TableContainer>
+  const onCommit = useCallback(
+    (id: number, value: number | string) => update((ed, s) => ed.setVariable(s, id, value)),
+    [update],
   );
+
+  const columns = useMemo((): Column<Row>[] => [
+    { key: 'id', label: 'ID', width: '7%', placeholder: '#', value: (r) => r.id },
+    { key: 'name', label: 'Name', width: '30%', value: (r) => r.name },
+    {
+      key: 'value',
+      label: 'Value',
+      width: '20%',
+      title: CHANGED_HELP,
+      value: (r) => asCell(r.value),
+      render: (r) => (
+        <VariableInput
+          value={r.value}
+          changed={asCell(r.value) !== asCell(r.origin)}
+          label={`${r.name} value`}
+          onCommit={(value) => onCommit(r.id, value)}
+        />
+      ),
+    },
+    { key: 'old', label: 'Old Value', width: '10%', title: OLD_COLUMN_HELP, value: (r) => r.old },
+    { key: 'gap', label: 'GAP', width: '10%', title: GAP_COLUMN_HELP, value: (r) => r.gap },
+  ], [onCommit]);
+
+  return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} />;
 };
 
 export default VariablesContent;
