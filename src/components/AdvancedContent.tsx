@@ -5,12 +5,20 @@ import { TreeNode, TreeValue } from '../formats';
 import { SwitchInput } from '../styles/ItemsContentStyles';
 import ValueInput from './ValueInput';
 import { parseQuery } from './advanced/query';
-import { CompareMode, refine, SearchResult, SearchSpec, TreeSearch } from './advanced/searchEngine';
+import { ChildCache, CompareMode, SearchResult, SearchSpec, TreeRefine, TreeSearch } from './advanced/searchEngine';
 
 /** Children shown per node before "Show more" (map data arrays can be huge). */
 const PAGE_SIZE = 200;
-/** Nodes searched per slice before yielding to the UI. */
+/** Nodes searched (or results refined) per slice before yielding to the UI. */
 const SEARCH_SLICE = 4_000;
+const REFINE_SLICE = 50;
+
+/** A search or refine that runs in slices. */
+interface Job {
+  results: SearchResult[];
+  visited: number;
+  step(budget: number): boolean;
+}
 
 const Wrapper = styled.div`
   display: flex;
@@ -254,6 +262,8 @@ interface SearchState {
   hitLimit: boolean;
   /** "search" or "refine", for the status line. */
   mode: 'search' | 'refine';
+  /** Refine: how many results were re-checked. */
+  total?: number;
 }
 
 const AdvancedContent: React.FC = () => {
@@ -269,7 +279,7 @@ const AdvancedContent: React.FC = () => {
   const [showHelp, setShowHelp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState<SearchState | null>(null);
-  const runner = useRef<{ search: TreeSearch; timer?: number } | null>(null);
+  const runner = useRef<{ job: Job; timer?: number } | null>(null);
 
   const stop = useCallback(() => {
     if (runner.current?.timer) window.clearTimeout(runner.current.timer);
@@ -316,35 +326,38 @@ const AdvancedContent: React.FC = () => {
     }
   };
 
-  const runSearch = () => {
-    stop();
-    const spec = makeSpec();
-    if (!spec) return;
-    const treeSearch = new TreeSearch(spec);
+  /** Runs a job in slices, publishing progress after each one. */
+  const run = (job: Job, slice: number, mode: SearchState['mode'], total?: number) => {
     const tick = () => {
-      if (!runner.current || runner.current.search !== treeSearch) return;
-      const done = treeSearch.step(SEARCH_SLICE);
+      if (!runner.current || runner.current.job !== job) return;
+      const done = job.step(slice);
       setSearch({
-        results: [...treeSearch.results],
-        visited: treeSearch.visited,
+        results: [...job.results],
+        visited: job.visited,
         running: !done,
-        hitLimit: treeSearch.hitResultLimit,
-        mode: 'search',
+        hitLimit: job instanceof TreeSearch && job.hitResultLimit,
+        mode,
+        total,
       });
       if (!done) runner.current.timer = window.setTimeout(tick, 0);
       else runner.current = null;
     };
-    runner.current = { search: treeSearch };
+    runner.current = { job };
     tick();
   };
 
-  const runRefine = () => {
-    if (!search?.results.length) return;
+  const runSearch = () => {
     stop();
     const spec = makeSpec();
-    if (!spec) return;
-    const results = refine(spec, search.results);
-    setSearch({ results, visited: search.results.length, running: false, hitLimit: false, mode: 'refine' });
+    if (spec) run(new TreeSearch(spec), SEARCH_SLICE, 'search');
+  };
+
+  const runRefine = () => {
+    const previous = search?.results;
+    if (!previous?.length) return;
+    stop();
+    const spec = makeSpec();
+    if (spec) run(new TreeRefine(spec, previous), REFINE_SLICE, 'refine', previous.length);
   };
 
   const reveal = (result: Pick<SearchResult, 'chain' | 'indices'>) => {
@@ -370,7 +383,10 @@ const AdvancedContent: React.FC = () => {
     return () => cancelAnimationFrame(frame);
   }, [highlight, expanded, pageSizes]);
 
-  const roots = useMemo(() => (tree && save ? tree.roots(save) : []), [tree, save]);
+  // Children lists are cached per save: containers can hold tens of thousands of
+  // entries and would otherwise be rebuilt on every render.
+  const childCache = useMemo(() => (tree ? new ChildCache(tree) : null), [tree]);
+  const roots = useMemo(() => (childCache && save ? childCache.roots(save).nodes : []), [childCache, save]);
 
   if (!tree || !save) return null;
 
@@ -444,7 +460,7 @@ const AdvancedContent: React.FC = () => {
                   </ScopeButton>
                 )}
               </Row>
-              {open && renderNodes(tree.children(save, node), depth + 1, here)}
+              {open && renderNodes(childCache!.children(save, node).nodes, depth + 1, here)}
             </React.Fragment>
           );
         })}
@@ -555,9 +571,11 @@ const AdvancedContent: React.FC = () => {
         <>
           <Status aria-live="polite">
             {search.running
-              ? `Searching… ${search.visited.toLocaleString()} values checked, ${search.results.length} found`
+              ? search.mode === 'refine'
+                ? `Refining… ${search.visited} of ${search.total} results checked, ${search.results.length} still match`
+                : `Searching… ${search.visited.toLocaleString()} values checked, ${search.results.length} found`
               : search.mode === 'refine'
-                ? `${search.results.length} of ${search.visited} previous results still match`
+                ? `${search.results.length} of ${search.total} previous results still match`
                 : `${search.results.length} found in ${search.visited.toLocaleString()} values` +
                   (search.hitLimit ? ' (stopped at the result limit — narrow the search)' : '')}
           </Status>

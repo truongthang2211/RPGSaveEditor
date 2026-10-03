@@ -120,3 +120,20 @@ describe('tree search on RGSS data', () => {
     expect(changed[0].oldValue).toBe(0);
   });
 });
+
+describe('refining large saves', () => {
+  it('lists each container once per save, however many results it holds', () => {
+    const big = { list: Array.from({ length: 20_000 }, (_, i) => ({ id: i, v: i % 7 })) };
+    let calls = 0;
+    const counting = { ...mvmzTree, children: (save: any, node: TreeNode) => { calls++; return mvmzTree.children(save, node); } };
+    const base = { tree: counting, save: big, compare: 'none' as const, editableOnly: false };
+    const results = searchAll({ ...base, terms: parseQuery('key:v =3'), maxResults: 300 });
+    expect(results).toHaveLength(300);
+
+    calls = 0;
+    const kept = refine({ ...base, terms: parseQuery('=3') }, results);
+    expect(kept).toHaveLength(300);
+    // list (1) + each of the 300 items (1 each); not 300 x 20,000-entry list rebuilds.
+    expect(calls).toBeLessThanOrEqual(301);
+  });
+});
