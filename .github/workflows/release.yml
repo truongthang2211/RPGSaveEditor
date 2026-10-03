@@ -177,11 +177,13 @@ jobs:
                 }
               }
             }' > docs/latest.json
+          # Builds <= v1.2.0 poll raw.githubusercontent.com/.../main/latest.json; keep it in sync.
+          cp docs/latest.json latest.json
 
       - name: Commit and push latest.json
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/latest.json
+          git add docs/latest.json latest.json
           git commit -m "update latest.json for ${{ steps.release.outputs.tag }}"
           git push origin main
