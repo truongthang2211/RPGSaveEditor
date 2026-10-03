@@ -1,11 +1,12 @@
 import { FileFilter } from '../utils/fileUtils';
 import { mvmzFormat } from './mvmz';
+import { vxaceFormat } from './vxace';
 import { SaveFormat } from './types';
 
 export * from './types';
 
 /** Every supported save format. Add new formats here. */
-export const SAVE_FORMATS: readonly SaveFormat[] = [mvmzFormat];
+export const SAVE_FORMATS: readonly SaveFormat[] = [mvmzFormat, vxaceFormat];
 
 export function findFormat(filePath: string): SaveFormat | undefined {
   return SAVE_FORMATS.find((format) => format.matches(filePath));

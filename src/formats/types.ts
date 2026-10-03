@@ -1,15 +1,19 @@
-import { ItemData } from '../types/Item';
-import { WeaponData } from '../types/Weapon';
-import { ArmorData } from '../types/Armo';
 import { SystemData } from '../types/System';
 
 export type InventoryKind = 'items' | 'weapons' | 'armors';
 
+/** What the UI needs from an item/weapon/armor database entry (formats may provide more). */
+export interface DatabaseEntry {
+  id: number;
+  name: string;
+  description?: string;
+}
+
 /** Names/descriptions from the game's database files (null when missing or unreadable). */
 export interface GameDatabase {
-  items: (ItemData | null)[] | null;
-  weapons: (WeaponData | null)[] | null;
-  armors: (ArmorData | null)[] | null;
+  items: (DatabaseEntry | null)[] | null;
+  weapons: (DatabaseEntry | null)[] | null;
+  armors: (DatabaseEntry | null)[] | null;
   system: SystemData | null;
 }
 
