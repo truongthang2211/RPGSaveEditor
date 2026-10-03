@@ -66,6 +66,7 @@ describe('VX Ace editor (synthetic save)', () => {
         name: 'Éric',
         paramPlus: [0, 0, 0, 0, 0, 0, 0, 0],
         paramLabels: ['HP', 'MP', 'ATK', 'DEF', 'MAT', 'MDF', 'AGI', 'LUK'],
+        limits: { level: { min: 1, max: 99 } },
         hp: 100,
         mp: 20,
         tp: 12.5,

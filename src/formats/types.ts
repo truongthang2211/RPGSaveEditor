@@ -27,6 +27,8 @@ export interface ActorView {
   paramLabels?: string[];
   /** Engine-specific stat names, e.g. XP calls MP "SP". */
   statLabels?: Partial<Record<ActorField, string>>;
+  /** Valid ranges; values outside them can crash the game (e.g. RGSS level > 99). */
+  limits?: Partial<Record<ActorField, { min: number; max: number }>>;
   hp?: number;
   mp?: number;
   tp?: number;

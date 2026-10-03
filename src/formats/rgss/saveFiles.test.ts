@@ -30,14 +30,17 @@ describe.skipIf(files.length === 0)('editing real RGSS saves', () => {
     const [actor] = editor.getActors(save);
     const switches = editor.getSwitches(save);
 
+    // Stay within 1..99: a level outside the class parameter table crashes the game.
+    const newLevel = actor?.level === undefined ? undefined : actor.level >= 99 ? actor.level - 1 : actor.level + 1;
+
     let edited = editor.setGold(save, gold + 12345);
-    if (actor?.level !== undefined) edited = editor.setActorField(edited, actor.slot, 'level', actor.level + 1);
+    if (newLevel !== undefined) edited = editor.setActorField(edited, actor.slot, 'level', newLevel);
     if (actor && actor.paramPlus.length > 2) edited = editor.setActorParamPlus(edited, actor.slot, 2, actor.paramPlus[2] + 7);
     if (switches.length > 1) edited = editor.setSwitch(edited, 1, !switches[1]);
 
     const back = readMarshalStream(writeMarshalStream(edited));
     expect(editor.getGold(back)).toBe(gold + 12345);
-    if (actor?.level !== undefined) expect(editor.getActors(back)[0].level).toBe(actor.level + 1);
+    if (newLevel !== undefined) expect(editor.getActors(back)[0].level).toBe(newLevel);
     if (actor && actor.paramPlus.length > 2) expect(editor.getActors(back)[0].paramPlus[2]).toBe(actor.paramPlus[2] + 7);
     if (switches.length > 1) expect(editor.getSwitches(back)[1]).toBe(!switches[1]);
 

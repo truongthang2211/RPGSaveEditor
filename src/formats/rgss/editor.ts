@@ -34,6 +34,16 @@ export interface RgssEditorSpec {
   statLabels?: Partial<Record<ActorField, string>>;
 }
 
+/**
+ * Class/actor parameter tables are Table(n, 100) in XP, VX and VX Ace, so
+ * param_base looks up nil (-> NoMethodError in Game_BattlerBase#param) for a
+ * level outside 1..99.
+ */
+const ACTOR_LIMITS: ActorView['limits'] = { level: { min: 1, max: 99 } };
+
+const clamp = (value: number, range?: { min: number; max: number }) =>
+  range ? Math.min(range.max, Math.max(range.min, value)) : value;
+
 const INVENTORY_FIELDS: Record<InventoryKind, string> = {
   items: '@items',
   weapons: '@weapons',
@@ -133,6 +143,7 @@ export function createRgssEditor(spec: RgssEditorSpec): SaveEditor<RgssSave> {
           paramPlus: paramsOf(actor).map((v) => toNumber(v) ?? 0),
           paramLabels: spec.params.labels,
           statLabels: spec.statLabels,
+          limits: ACTOR_LIMITS,
           hp: stat(actor, 'hp'),
           mp: stat(actor, 'mp'),
           tp: stat(actor, 'tp'),
@@ -140,9 +151,10 @@ export function createRgssEditor(spec: RgssEditorSpec): SaveEditor<RgssSave> {
           exp: toNumber(expOf(actor)),
         }];
       }),
-    setActorField: (save, slot, field, value) =>
+    setActorField: (save, slot, field, rawValue) =>
       edit(save, (copy) => {
         const actor = requireActor(copy, slot);
+        const value = clamp(rawValue, ACTOR_LIMITS?.[field]);
         if (field === 'exp') {
           if (!spec.expPerClass) {
             setField(actor, '@exp', numberLike(getField(actor, '@exp'), value));

@@ -94,6 +94,7 @@ describe('RPG Maker VX saves', () => {
       paramPlus: [0, 0, 1, 2, 3, 4],
       paramLabels: ['MaxHP', 'MaxMP', 'ATK', 'DEF', 'SPI', 'AGI'],
       statLabels: undefined,
+      limits: { level: { min: 1, max: 99 } },
     }]);
     expect(vxEditor.getSwitches(save)).toEqual([null, true, false]);
     expect(vxEditor.getVariables(save)).toEqual({ 0: null, 1: 0, 2: 25 });
@@ -134,6 +135,7 @@ describe('RPG Maker XP saves', () => {
       paramPlus: [0, 0, 5, 0, 0, 2],
       paramLabels: ['MaxHP', 'MaxSP', 'STR', 'DEX', 'AGI', 'INT'],
       statLabels: { mp: 'SP' },
+      limits: { level: { min: 1, max: 99 } },
     });
   });
 
@@ -169,6 +171,18 @@ describe('RPG Maker XP saves', () => {
     const dumps = readMarshalStream(bytes);
     expect(dumps).toHaveLength(12);
     expect(Buffer.from(writeMarshalStream(dumps)).equals(Buffer.from(bytes))).toBe(true);
+  });
+});
+
+describe('level limits', () => {
+  it.each([
+    ['VX', vxEditor, makeVxSave],
+    ['XP', xpEditor, makeXpSave],
+  ] as const)('%s clamps level to 1..99 (a higher level crashes the game menu)', (_name, editor, make) => {
+    expect(editor.getActors(make())[0].limits).toEqual({ level: { min: 1, max: 99 } });
+    expect(editor.getActors(editor.setActorField(make(), 1, 'level', 500))[0].level).toBe(99);
+    expect(editor.getActors(editor.setActorField(make(), 1, 'level', 0))[0].level).toBe(1);
+    expect(editor.getActors(editor.setActorField(make(), 1, 'level', 50))[0].level).toBe(50);
   });
 });
 
