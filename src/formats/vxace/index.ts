@@ -1,8 +1,9 @@
 import { dirname, join } from '@tauri-apps/api/path';
-import { fileExists, readBinary, writeBinary } from '../../utils/fileUtils';
+import { fileExists, openRandomAccess, readBinary, writeBinary } from '../../utils/fileUtils';
 import { fileNameFromPath } from '../../utils/path';
 import { readMarshal, readMarshalStream } from '../marshal/reader';
 import { writeMarshalStream } from '../marshal/writer';
+import { findEntry, readRgss3aFile, readRgss3aIndex } from '../rgss/archive';
 import { GameDatabase, SaveFormat } from '../types';
 import { toDatabaseEntries, toSystemData } from './database';
 import { VxAceSave, vxaceEditor } from './editor';
@@ -14,16 +15,30 @@ async function gameDir(savePath: string): Promise<string> {
   return isSaveSubfolder(fileNameFromPath(saveDir)) ? dirname(saveDir) : saveDir;
 }
 
-async function loadData<T>(dataDir: string, name: string, convert: (value: any) => T, warnings: string[]): Promise<T | null> {
-  const path = await join(dataDir, `${name}.rvdata2`);
-  try {
-    if (!(await fileExists(path))) return null;
-    return convert(readMarshal(await readBinary(path)));
-  } catch (error) {
-    warnings.push(`Failed to load ${name}.rvdata2: ${error}`);
-    return null;
-  }
+/** Reads Data/<name>.rvdata2 from wherever the game keeps it; null if absent. */
+type DataSource = (name: string) => Promise<Uint8Array | null>;
+
+const DATA_FILES = ['Items', 'Weapons', 'Armors', 'System'] as const;
+
+async function loadDatabaseFrom(source: DataSource, warnings: string[]): Promise<GameDatabase> {
+  const load = async <T>(name: (typeof DATA_FILES)[number], convert: (value: any) => T): Promise<T | null> => {
+    try {
+      const bytes = await source(name);
+      return bytes ? convert(readMarshal(bytes)) : null;
+    } catch (error) {
+      warnings.push(`Failed to load ${name}.rvdata2: ${error}`);
+      return null;
+    }
+  };
+  return {
+    items: await load('Items', toDatabaseEntries),
+    weapons: await load('Weapons', toDatabaseEntries),
+    armors: await load('Armors', toDatabaseEntries),
+    system: await load('System', toSystemData),
+  };
 }
+
+const isEmpty = (database: GameDatabase) => !database.items && !database.weapons && !database.armors && !database.system;
 
 export const vxaceFormat: SaveFormat<VxAceSave> = {
   id: 'vxace',
@@ -46,23 +61,36 @@ export const vxaceFormat: SaveFormat<VxAceSave> = {
   async loadDatabase(savePath) {
     const warnings: string[] = [];
     const root = await gameDir(savePath);
+
+    // 1) Unpacked Data/ folder next to Game.exe.
     const dataDir = await join(root, 'Data');
+    const database = await loadDatabaseFrom(async (name) => {
+      const path = await join(dataDir, `${name}.rvdata2`);
+      return (await fileExists(path)) ? readBinary(path) : null;
+    }, warnings);
+    if (!isEmpty(database)) return { database, warnings };
 
-    const database: GameDatabase = {
-      items: await loadData(dataDir, 'Items', toDatabaseEntries, warnings),
-      weapons: await loadData(dataDir, 'Weapons', toDatabaseEntries, warnings),
-      armors: await loadData(dataDir, 'Armors', toDatabaseEntries, warnings),
-      system: await loadData(dataDir, 'System', toSystemData, warnings),
-    };
-
-    if (!database.items && !database.system) {
-      const packed = await fileExists(await join(root, 'Game.rgss3a')).catch(() => false);
-      warnings.push(
-        packed
-          ? 'Game data is packed in Game.rgss3a: names are not available, showing IDs only.'
-          : `Game data not found in ${dataDir}: showing IDs only.`,
-      );
+    // 2) Encrypted Game.rgss3a: read only the index and these four entries.
+    const archivePath = await join(root, 'Game.rgss3a');
+    if (await fileExists(archivePath)) {
+      const archive = await openRandomAccess(archivePath);
+      try {
+        const entries = await readRgss3aIndex(archive.readAt);
+        const packed = await loadDatabaseFrom(async (name) => {
+          const entry = findEntry(entries, `Data/${name}.rvdata2`);
+          return entry ? readRgss3aFile(archive.readAt, entry) : null;
+        }, warnings);
+        if (!isEmpty(packed)) return { database: packed, warnings };
+        warnings.push('Game.rgss3a has no database files: showing IDs only.');
+      } catch (error) {
+        warnings.push(`Could not read Game.rgss3a (${error}): showing IDs only.`);
+      } finally {
+        await archive.close();
+      }
+      return { database, warnings };
     }
+
+    warnings.push(`Game data not found in ${dataDir}: showing IDs only.`);
     return { database, warnings };
   },
 
