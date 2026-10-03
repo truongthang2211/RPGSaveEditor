@@ -5,6 +5,8 @@ import InventoryContent from './InventoryContent';
 import SwitchesContent from './SwitchesContent';
 import VariablesContent from './VariablesContent';
 import AboutContent from './AboutContent';
+import ErrorBoundary from './ErrorBoundary';
+import { useContent } from '../context/ContentContext';
 
 const ContentContainer = styled.div`
   flex: 1;
@@ -15,6 +17,7 @@ interface ContentProps {
 }
 
 const Content: React.FC<ContentProps> = ({ page }) => {
+  const { content } = useContent();
   let displayContent: JSX.Element;
 
   switch (page) {
@@ -45,7 +48,10 @@ const Content: React.FC<ContentProps> = ({ page }) => {
 
   return (
     <ContentContainer>
-      {displayContent}
+      {/* A new page, file or reload clears a previous rendering error. */}
+      <ErrorBoundary resetKeys={[page, content.filePath, content.originSaveData]}>
+        {displayContent}
+      </ErrorBoundary>
       {/* <pre>{JSON.stringify(content.saveData, null, 2)}</pre> */}
     </ContentContainer>
   );
