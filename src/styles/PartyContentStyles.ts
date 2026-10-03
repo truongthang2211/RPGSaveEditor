@@ -72,6 +72,11 @@ export const CharacterHeader = styled.div`
   &:hover {
     background-color: ${({ theme }) => theme.hoverBackground};
   }
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.primaryColor};
+    outline-offset: -2px;
+  }
 `;
 
 export const BonusList = styled.div`
@@ -80,6 +85,7 @@ export const BonusList = styled.div`
   gap: 4px; /* Khoảng cách giữa các item */
   padding: 12px; /* Padding để tránh item bị dính vào lề */
   background-color: ${({ theme }) => theme.contentBackground};
+  border-top: 1px solid ${({ theme }) => theme.borderColor}; /* Bonus params come below the main stats */
 `;
 
 export const BonusItem = styled.div`
@@ -109,7 +115,6 @@ export const StatsContainer = styled.div`
   flex-wrap: wrap;
   gap: 4px;
   background-color: ${({ theme }) => theme.contentBackground};
-  border-top: 1px solid ${({ theme }) => theme.borderColor};
 `;
 
 export const StatItem = styled.div`

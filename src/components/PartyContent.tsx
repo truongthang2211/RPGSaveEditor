@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import styled from 'styled-components';
 import {
   Label,
   Input,
@@ -32,28 +33,38 @@ const STATS: { field: ActorField; label: string; alwaysShown: boolean }[] = [
   { field: 'exp', label: 'Exp', alwaysShown: false },
 ];
 
+const Summary = styled.span`
+  margin-left: 12px;
+  font-size: 13px;
+  font-weight: 400;
+  opacity: 0.7;
+`;
+
+const Chevron = styled.span`
+  float: right;
+`;
+
+/** "Lv 99 · HP 9000 · Slot 1": tells same-named characters apart while collapsed. */
+function summaryOf(actor: ActorView): string {
+  const parts: string[] = [];
+  if (actor.level !== undefined) parts.push(`Lv ${actor.level}`);
+  if (actor.hp !== undefined) parts.push(`HP ${actor.hp}`);
+  parts.push(`Slot ${actor.slot}`);
+  return parts.join(' · ');
+}
+
 const PartyContent: React.FC = () => {
-  const { editor, save, update } = useSaveEditor();
+  const { editor, save, origin, update } = useSaveEditor();
   const [expandedSlot, setExpandedSlot] = useState<number | null>(null);
 
   if (!editor || !save) return <Container />;
 
   const gold = editor.getGold(save);
+  const originGold = origin ? editor.getGold(origin) : gold;
   const actors = editor.getActors(save);
+  const originActors = new Map((origin ? editor.getActors(origin) : actors).map((a) => [a.slot, a]));
 
-  const renderBonus = (actor: ActorView) =>
-    actor.paramPlus.map((value, i) => (
-      <BonusItem key={i}>
-        <BonusLabel>Bonus {actor.paramLabels?.[i] ?? BONUS_LABELS[i]}:</BonusLabel>
-        <BonusInput
-          type="number"
-          value={value}
-          onChange={(e) => update((ed, s) => ed.setActorParamPlus(s, actor.slot, i, Number(e.target.value)))}
-        />
-      </BonusItem>
-    ));
-
-  const renderStats = (actor: ActorView) =>
+  const renderStats = (actor: ActorView, loaded?: ActorView) =>
     STATS.filter(({ field, alwaysShown }) => (alwaysShown ? actor[field] !== undefined : actor[field])).map(({ field, label }) => {
       const id = `${field}-${actor.slot}`;
       const range = actor.limits?.[field];
@@ -67,11 +78,31 @@ const PartyContent: React.FC = () => {
             max={range?.max}
             title={range ? `${range.min}–${range.max}` : undefined}
             value={actor[field] || ''}
+            $changed={loaded !== undefined && actor[field] !== loaded[field]}
             onChange={(e) => update((ed, s) => ed.setActorField(s, actor.slot, field, Number(e.target.value)))}
           />
         </StatItem>
       );
     });
+
+  const renderBonus = (actor: ActorView, loaded?: ActorView) =>
+    actor.paramPlus.map((value, i) => {
+      const id = `bonus-${actor.slot}-${i}`;
+      return (
+        <BonusItem key={i}>
+          <BonusLabel as="label" htmlFor={id}>Bonus {actor.paramLabels?.[i] ?? BONUS_LABELS[i]}:</BonusLabel>
+          <BonusInput
+            id={id}
+            type="number"
+            value={value}
+            $changed={loaded !== undefined && value !== loaded.paramPlus[i]}
+            onChange={(e) => update((ed, s) => ed.setActorParamPlus(s, actor.slot, i, Number(e.target.value)))}
+          />
+        </BonusItem>
+      );
+    });
+
+  const toggle = (slot: number) => setExpandedSlot(expandedSlot === slot ? null : slot);
 
   return (
     <Container>
@@ -81,23 +112,40 @@ const PartyContent: React.FC = () => {
           id="gold"
           type="number"
           value={gold}
+          $changed={gold !== originGold}
           onChange={(e) => update((ed, s) => ed.setGold(s, Number(e.target.value)))}
         />
       </GoldContainer>
-      {actors.map((actor, index) => (
-        <CharacterContainer key={actor.slot}>
-          <CharacterHeader onClick={() => setExpandedSlot(expandedSlot === actor.slot ? null : actor.slot)}>
-            {actor.name || `Character ${index + 1}`}
-            {expandedSlot === actor.slot ? '▲' : '▼'}
-          </CharacterHeader>
-          {expandedSlot === actor.slot && (
-            <>
-              <BonusList>{renderBonus(actor)}</BonusList>
-              <StatsContainer>{renderStats(actor)}</StatsContainer>
-            </>
-          )}
-        </CharacterContainer>
-      ))}
+      {actors.map((actor, index) => {
+        const expanded = expandedSlot === actor.slot;
+        const loaded = originActors.get(actor.slot);
+        return (
+          <CharacterContainer key={actor.slot}>
+            <CharacterHeader
+              role="button"
+              tabIndex={0}
+              aria-expanded={expanded}
+              onClick={() => toggle(actor.slot)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggle(actor.slot);
+                }
+              }}
+            >
+              {actor.name || `Character ${index + 1}`}
+              <Summary>{summaryOf(actor)}</Summary>
+              <Chevron aria-hidden>{expanded ? '▲' : '▼'}</Chevron>
+            </CharacterHeader>
+            {expanded && (
+              <>
+                <StatsContainer>{renderStats(actor, loaded)}</StatsContainer>
+                <BonusList>{renderBonus(actor, loaded)}</BonusList>
+              </>
+            )}
+          </CharacterContainer>
+        );
+      })}
     </Container>
   );
 };
