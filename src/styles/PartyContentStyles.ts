@@ -15,17 +15,19 @@ export const Label = styled.label`
 
 `;
 
-export const Input = styled.input`
+/** `$changed`: value differs from the file as loaded (highlighted so edits are easy to spot). */
+export const Input = styled.input<{ $changed?: boolean }>`
   color: ${({ theme }) => theme.color};
   width: 100%;
-  max-width: 300px; 
+  max-width: 300px;
   padding: 6px 6px;
   font-size: 14px;
-  border: 1px solid ${({ theme }) => theme.borderColor};
+  border: 1px solid ${({ theme, $changed }) => ($changed ? theme.changedBorder : theme.borderColor)};
   border-radius: 8px;
   box-sizing: border-box;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  background-color: ${({ theme }) => theme.inputBackground};
+  background-color: ${({ theme, $changed }) => ($changed ? theme.changedBackground : theme.inputBackground)};
+  outline: ${({ theme, $changed }) => ($changed ? `1px solid ${theme.changedBorder}` : 'none')};
   &:focus {
     border-color: ${({ theme }) => theme.primaryColor};
     box-shadow: 0 0 3px ${({ theme }) => theme.primaryColor};
