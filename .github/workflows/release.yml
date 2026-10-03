@@ -35,6 +35,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Type-check and test
+        run: |
+          npx tsc --noEmit
+          npx vitest run
+
       - name: Generate release notes
         id: release_notes
         uses: actions/github-script@v7
