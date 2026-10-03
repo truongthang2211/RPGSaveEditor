@@ -19,7 +19,11 @@ import { ActorField, ActorView } from '../formats';
 
 const BONUS_LABELS = ['HP', 'MP', 'ATK', 'DEF', 'MAT', 'MDF', 'AGI', 'LUK'];
 
-/** Optional stats are only shown when the save has a (non-zero) value for them. */
+/**
+ * HP/MP are shown whenever the save has them; the others only when non-zero.
+ * Stats missing from the save are hidden rather than added (some games' scripts
+ * keep them elsewhere).
+ */
 const STATS: { field: ActorField; label: string; alwaysShown: boolean }[] = [
   { field: 'hp', label: 'HP', alwaysShown: true },
   { field: 'mp', label: 'MP', alwaysShown: true },
@@ -50,7 +54,7 @@ const PartyContent: React.FC = () => {
     ));
 
   const renderStats = (actor: ActorView) =>
-    STATS.filter(({ field, alwaysShown }) => alwaysShown || actor[field]).map(({ field, label }) => {
+    STATS.filter(({ field, alwaysShown }) => (alwaysShown ? actor[field] !== undefined : actor[field])).map(({ field, label }) => {
       const id = `${field}-${actor.slot}`;
       return (
         <StatItem key={field}>
