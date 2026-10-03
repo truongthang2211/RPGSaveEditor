@@ -38,12 +38,32 @@ const MainContentContainer = styled.div`
   background-color: ${({ theme }) => theme.contentBackground};
 `;
 
+const THEME_KEY = 'theme';
+
+/** Saved choice, otherwise the OS light/dark setting. */
+function initialDarkMode(): boolean {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'dark' || saved === 'light') return saved === 'dark';
+  } catch {
+    // Storage unavailable: fall back to the OS setting.
+  }
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+}
+
 const App: React.FC = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(initialDarkMode);
   const [selectedContent, setSelectedContent] = useState<string>('Party');
 
   const toggleTheme = () => {
-    setIsDarkMode(prev => !prev);
+    setIsDarkMode(prev => {
+      try {
+        localStorage.setItem(THEME_KEY, prev ? 'light' : 'dark');
+      } catch {
+        // Not persisted; the toggle still applies for this session.
+      }
+      return !prev;
+    });
   };
 
   return (
