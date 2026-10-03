@@ -11,7 +11,7 @@
 /** nil, true/false and Fixnum map to JS primitives; everything else is a node. */
 export type MValue = null | boolean | number | MNode;
 
-/** Symbol name is the raw bytes as a latin1 string (byte-for-byte). */
+/** Symbol name is the raw bytes, one char per byte (see binaryString.ts). */
 export interface MSymbol {
   kind: 'symbol';
   name: string;

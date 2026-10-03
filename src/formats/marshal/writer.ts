@@ -1,10 +1,10 @@
+import { binaryStringToBytes } from './binaryString';
 import { MARSHAL_MAJOR, MARSHAL_MINOR, MIvars, MNode, MSymbol, MValue, TYPE } from './types';
 
 /** RGSS runs a 32-bit Ruby: integers outside this range are Bignums. */
 const FIXNUM_MIN = -(2 ** 30);
 const FIXNUM_MAX = 2 ** 30 - 1;
 
-const latin1Bytes = (text: string): Uint8Array => Uint8Array.from(text, (c) => c.charCodeAt(0) & 0xff);
 
 /**
  * Writes one Marshal dump. Mirrors Ruby 1.9's w_object: objects are numbered in
@@ -67,7 +67,7 @@ class Writer {
     }
     if (sym.ivars) this.byte(TYPE.IVAR);
     this.byte(TYPE.SYMBOL);
-    this.rawBytes(latin1Bytes(sym.name));
+    this.rawBytes(binaryStringToBytes(sym.name));
     this.symbols.set(sym.name, this.symbols.size);
     if (sym.ivars) this.ivars(sym.ivars);
   }
@@ -128,7 +128,7 @@ class Writer {
         break;
       case 'float':
         this.byte(TYPE.FLOAT);
-        this.rawBytes(latin1Bytes(node.text));
+        this.rawBytes(binaryStringToBytes(node.text));
         break;
       case 'bignum':
         this.byte(TYPE.BIGNUM);
