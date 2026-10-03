@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { vxaceEditor as editor, VxAceSave } from './editor';
 import { readMarshalStream } from '../marshal/reader';
 import { writeMarshalStream } from '../marshal/writer';
+import { fromDumps, materialize } from '../rgss/patches';
 import { getField, getSymbolKey, makeString, symbol } from '../marshal/helpers';
 import { MArray, MHash, MObject, MValue } from '../marshal/types';
 
@@ -48,11 +49,11 @@ function makeSave(): VxAceSave {
       '@armors': intHash([[4, 1]]),
     }),
   });
-  return [symHash({ playtime_s: makeString('0:01') }), contents];
+  return fromDumps([symHash({ playtime_s: makeString('0:01') }), contents]);
 }
 
-const bytesOf = (save: VxAceSave) => Buffer.from(writeMarshalStream(save));
-const reread = (save: VxAceSave): VxAceSave => readMarshalStream(writeMarshalStream(save));
+const bytesOf = (save: VxAceSave) => Buffer.from(writeMarshalStream(materialize(save)));
+const reread = (save: VxAceSave): VxAceSave => fromDumps(readMarshalStream(writeMarshalStream(materialize(save))));
 
 describe('VX Ace editor (synthetic save)', () => {
   it('reads gold, inventory, actors, switches and variables', () => {
@@ -92,6 +93,7 @@ describe('VX Ace editor (synthetic save)', () => {
     edited = editor.setVariable(edited, 3, 'world');
 
     expect(bytesOf(save).equals(before)).toBe(true);
+    expect(edited.dumps).toBe(save.dumps); // edits are patches: the dumps are shared, not copied
 
     const back = reread(edited);
     expect(editor.getGold(back)).toBe(9999);
@@ -103,26 +105,26 @@ describe('VX Ace editor (synthetic save)', () => {
 
   it('keeps Float fields Float (e.g. @tp)', () => {
     const edited = editor.setActorField(makeSave(), 1, 'tp', 40);
-    const actor = (getField(getSymbolKey(edited[1], 'actors'), '@data') as MArray).items[1];
+    const actor = (getField(getSymbolKey(materialize(edited)[1], 'actors'), '@data') as MArray).items[1];
     expect(getField(actor, '@tp')).toEqual({ kind: 'float', text: '40' });
   });
 
   it('keeps shared/cyclic references shared after editing', () => {
     const edited = reread(editor.setGold(makeSave(), 1));
-    const actor = (getField(getSymbolKey(edited[1], 'actors'), '@data') as MArray).items[1];
+    const actor = (getField(getSymbolKey(edited.dumps[1], 'actors'), '@data') as MArray).items[1];
     const battler = getField(getField(actor, '@result'), '@battler');
     expect(battler).toBe(actor);
   });
 
   it('finds contents when a script writes an extra dump before it', () => {
-    const [header, contents] = makeSave();
-    const save: VxAceSave = [header, array(1, 2, 3), contents]; // e.g. a save thumbnail
+    const [header, contents] = makeSave().dumps;
+    const save = fromDumps([header, array(1, 2, 3), contents]); // e.g. a save thumbnail
     expect(editor.getGold(save)).toBe(50);
     expect(editor.getGold(reread(editor.setGold(save, 7)))).toBe(7);
   });
 
   it('reports a clear error for saves missing expected data', () => {
-    const save: VxAceSave = [symHash({}), symHash({})];
+    const save = fromDumps([symHash({}), symHash({})]);
     expect(editor.getGold(save)).toBe(0);
     expect(editor.getActors(save)).toEqual([]);
     expect(() => editor.setGold(save, 1)).toThrow(/no party/);
@@ -136,7 +138,7 @@ describe.skipIf(realSaves.length === 0)('VX Ace editor (real saves)', () => {
   const load = (file: string) => new Uint8Array(readFileSync(join(saveDir, file)));
 
   it.each(realSaves)('%s: reads the party and actors', (file) => {
-    const save = readMarshalStream(load(file));
+    const save = fromDumps(readMarshalStream(load(file)));
     expect(editor.getInventory(save, 'items')).toMatchObject({ 20: 3, 104: 1 });
     const [lona] = editor.getActors(save);
     expect(lona).toMatchObject({ slot: 1, name: 'Lona', paramPlus: [0, 0, 0, 0, 0, 0, 0, 0] });
@@ -144,7 +146,7 @@ describe.skipIf(realSaves.length === 0)('VX Ace editor (real saves)', () => {
 
   it.each(realSaves)('%s: an edit round-trips and reverting it restores the original bytes', (file) => {
     const original = load(file);
-    const save = readMarshalStream(original);
+    const save = fromDumps(readMarshalStream(original));
     const gold = editor.getGold(save);
 
     const edited = reread(editor.setInventoryCount(editor.setGold(save, 123456), 'items', 20, 99));
@@ -152,6 +154,6 @@ describe.skipIf(realSaves.length === 0)('VX Ace editor (real saves)', () => {
     expect(editor.getInventory(edited, 'items')[20]).toBe(99);
 
     const reverted = editor.setInventoryCount(editor.setGold(edited, gold), 'items', 20, 3);
-    expect(Buffer.from(writeMarshalStream(reverted)).equals(Buffer.from(original))).toBe(true);
+    expect(Buffer.from(writeMarshalStream(materialize(reverted))).equals(Buffer.from(original))).toBe(true);
   });
 });

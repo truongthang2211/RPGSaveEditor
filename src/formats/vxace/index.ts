@@ -1,6 +1,7 @@
 import { readBinary, writeBinary } from '../../utils/fileUtils';
 import { readMarshalStream } from '../marshal/reader';
 import { writeMarshalStream } from '../marshal/writer';
+import { fromDumps, materialize } from '../rgss/patches';
 import { loadRgssDatabase } from '../rgss/loadDatabase';
 import { isRgssSavePath, rgssGameName } from '../rgss/paths';
 import { SaveFormat } from '../types';
@@ -17,11 +18,11 @@ export const vxaceFormat: SaveFormat<VxAceSave> = {
     if (dumps.length < 2) {
       throw new Error(`Not a VX Ace save: expected header and contents, found ${dumps.length} Marshal dump(s)`);
     }
-    return { data: dumps };
+    return { data: fromDumps(dumps) };
   },
 
   async write(filePath, { data }) {
-    await writeBinary(filePath, writeMarshalStream(data));
+    await writeBinary(filePath, writeMarshalStream(materialize(data)));
   },
 
   loadDatabase: (savePath) => loadRgssDatabase(savePath, { extension: 'rvdata2', archive: 'Game.rgss3a' }),

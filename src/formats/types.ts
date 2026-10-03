@@ -41,7 +41,8 @@ export type ActorField = 'hp' | 'mp' | 'tp' | 'level' | 'exp';
 
 /**
  * Reads and edits the parts of a save the UI exposes.
- * Setters never mutate their input; they return an updated copy.
+ * Setters never mutate their input; they return an updated save. Callers rely
+ * on this: the loaded save is shared as the "origin" for change highlighting.
  */
 export interface SaveEditor<S = any> {
   getGold(save: S): number;

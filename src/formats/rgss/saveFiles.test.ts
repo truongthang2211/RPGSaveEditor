@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readMarshalStream } from '../marshal/reader';
 import { writeMarshalStream } from '../marshal/writer';
+import { fromDumps, materialize } from './patches';
 import { SaveEditor } from '../types';
 import { vxaceEditor } from '../vxace/editor';
 import { vxEditor } from '../vx/editor';
@@ -24,7 +25,7 @@ describe.skipIf(files.length === 0)('editing real RGSS saves', () => {
   it.each(files)('%s', (file) => {
     const editor = EDITORS[file.split('.').pop()!.toLowerCase()];
     const original = new Uint8Array(readFileSync(join(dir, file)));
-    const save = readMarshalStream(original);
+    const save = fromDumps(readMarshalStream(original));
 
     const gold = editor.getGold(save);
     const [actor] = editor.getActors(save);
@@ -38,7 +39,7 @@ describe.skipIf(files.length === 0)('editing real RGSS saves', () => {
     if (actor && actor.paramPlus.length > 2) edited = editor.setActorParamPlus(edited, actor.slot, 2, actor.paramPlus[2] + 7);
     if (switches.length > 1) edited = editor.setSwitch(edited, 1, !switches[1]);
 
-    const back = readMarshalStream(writeMarshalStream(edited));
+    const back = fromDumps(readMarshalStream(writeMarshalStream(materialize(edited))));
     expect(editor.getGold(back)).toBe(gold + 12345);
     if (newLevel !== undefined) expect(editor.getActors(back)[0].level).toBe(newLevel);
     if (actor && actor.paramPlus.length > 2) expect(editor.getActors(back)[0].paramPlus[2]).toBe(actor.paramPlus[2] + 7);
@@ -48,6 +49,6 @@ describe.skipIf(files.length === 0)('editing real RGSS saves', () => {
     if (actor?.level !== undefined) reverted = editor.setActorField(reverted, actor.slot, 'level', actor.level);
     if (actor && actor.paramPlus.length > 2) reverted = editor.setActorParamPlus(reverted, actor.slot, 2, actor.paramPlus[2]);
     if (switches.length > 1) reverted = editor.setSwitch(reverted, 1, switches[1] as boolean);
-    expect(Buffer.from(writeMarshalStream(reverted)).equals(Buffer.from(original))).toBe(true);
+    expect(Buffer.from(writeMarshalStream(materialize(reverted))).equals(Buffer.from(original))).toBe(true);
   });
 });

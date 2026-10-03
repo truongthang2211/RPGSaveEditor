@@ -25,10 +25,13 @@ function formatFor(filePath: string): SaveFormat {
   return format;
 }
 
-/** Reads and decodes a save; the origin copy is independent from the editable one. */
+/**
+ * Reads and decodes a save. Editors never mutate a save (setters return a new
+ * one), so the loaded data can serve as both the editable save and the origin.
+ */
 async function readSave(format: SaveFormat, filePath: string) {
   const { data, meta } = await format.read(filePath);
-  return { saveData: data, originSaveData: structuredClone(data), saveMeta: meta, dirty: false };
+  return { saveData: data, originSaveData: data, saveMeta: meta, dirty: false };
 }
 
 /** Asks before throwing away unsaved edits; true when it's fine to continue. */
@@ -122,7 +125,7 @@ export const useSave = () => {
       // The written data is the new baseline; edits made while writing stay unsaved.
       setContent((prev) => ({
         ...prev,
-        originSaveData: structuredClone(saveData),
+        originSaveData: saveData,
         dirty: prev.saveData !== saveData,
       }));
       successNotify('File Saved!');
