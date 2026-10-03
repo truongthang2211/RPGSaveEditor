@@ -1,22 +1,21 @@
 import { readBinary, writeBinary } from '../../utils/fileUtils';
 import { readMarshalStream } from '../marshal/reader';
 import { writeMarshalStream } from '../marshal/writer';
+import { locateByClass, RgssSave } from '../rgss/editor';
 import { loadRgssDatabase } from '../rgss/loadDatabase';
 import { isRgssSavePath, rgssGameName } from '../rgss/paths';
 import { SaveFormat } from '../types';
-import { VxAceSave, vxaceEditor } from './editor';
+import { vxEditor } from './editor';
 
-export const vxaceFormat: SaveFormat<VxAceSave> = {
-  id: 'vxace',
-  label: 'RPG Maker VX Ace',
-  extensions: ['rvdata2'],
-  matches: (filePath) => isRgssSavePath(filePath, 'rvdata2'),
+export const vxFormat: SaveFormat<RgssSave> = {
+  id: 'vx',
+  label: 'RPG Maker VX',
+  extensions: ['rvdata'],
+  matches: (filePath) => isRgssSavePath(filePath, 'rvdata'),
 
   async read(filePath) {
     const dumps = readMarshalStream(await readBinary(filePath));
-    if (dumps.length < 2) {
-      throw new Error(`Not a VX Ace save: expected header and contents, found ${dumps.length} Marshal dump(s)`);
-    }
+    if (!locateByClass(dumps, 'party')) throw new Error('Not an RPG Maker VX save: no Game_Party found');
     return { data: dumps };
   },
 
@@ -24,7 +23,7 @@ export const vxaceFormat: SaveFormat<VxAceSave> = {
     await writeBinary(filePath, writeMarshalStream(data));
   },
 
-  loadDatabase: (savePath) => loadRgssDatabase(savePath, { extension: 'rvdata2', archive: 'Game.rgss3a' }),
+  loadDatabase: (savePath) => loadRgssDatabase(savePath, { extension: 'rvdata', archive: 'Game.rgss2a' }),
   gameName: rgssGameName,
-  editor: vxaceEditor,
+  editor: vxEditor,
 };

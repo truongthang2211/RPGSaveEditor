@@ -53,8 +53,8 @@ If you find this tool useful, please consider supporting us:
 
 ## Features
 
-- Open and edit RPG Maker MV (`.rpgsave`, LZ-String), MZ (`.rmmzsave`, pako/zlib) and VX Ace (`SaveNN.rvdata2`, Ruby Marshal) save files.
-- VX Ace saves are rewritten losslessly: everything the editor doesn't change, including data from game-specific scripts, is kept byte-for-byte.
+- Open and edit RPG Maker MV (`.rpgsave`, LZ-String), MZ (`.rmmzsave`, pako/zlib), VX Ace (`SaveNN.rvdata2`), VX (`SaveN.rvdata`) and XP (`SaveN.rxdata`) save files.
+- XP/VX/VX Ace saves (Ruby Marshal) are rewritten losslessly: everything the editor doesn't change, including data from game-specific scripts, is kept byte-for-byte.
 - Modify game data such as party, items, switches, and variables.
 - Supports light and dark modes.
 - Easy-to-use interface with file selection and reload options.
@@ -71,8 +71,8 @@ If you find this tool useful, please consider supporting us:
 ## Usage
 
 1. Launch the application.
-2. Click on the file icon to open a `.rpgsave` (MV), `.rmmzsave` (MZ) or `SaveNN.rvdata2` (VX Ace) file.
-   For VX Ace, item/switch names come from the game's `Data/` folder; if the game is packed into `Game.rgss3a`, IDs are shown instead.
+2. Click on the file icon to open a `.rpgsave` (MV), `.rmmzsave` (MZ), `.rvdata2` (VX Ace), `.rvdata` (VX) or `.rxdata` (XP) save.
+   For XP/VX/VX Ace, item/switch names come from the game's `Data/` folder, or from its encrypted archive (`Game.rgssad`, `Game.rgss2a`, `Game.rgss3a`) when the game is packed.
 3. Edit the desired data using the available sections in the sidebar.
 4. Save your changes or reload the file if needed.
 

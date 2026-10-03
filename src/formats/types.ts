@@ -21,8 +21,14 @@ export interface ActorView {
   /** Index of the actor in the save's actor list (used to edit it). */
   slot: number;
   name: string;
-  /** Bonus params: HP, MP, ATK, DEF, MAT, MDF, AGI, LUK. */
+  /** Bonus params, in the order of `paramLabels` (MV/MZ/VX Ace: HP, MP, ATK, DEF, MAT, MDF, AGI, LUK). */
   paramPlus: number[];
+  /** Labels for `paramPlus` when they differ from the MV/MZ order (e.g. XP: MaxHP, MaxSP, STR, DEX, AGI, INT). */
+  paramLabels?: string[];
+  /** Engine-specific stat names, e.g. XP calls MP "SP". */
+  statLabels?: Partial<Record<ActorField, string>>;
+  /** Valid ranges; values outside them can crash the game (e.g. RGSS level > 99). */
+  limits?: Partial<Record<ActorField, { min: number; max: number }>>;
   hp?: number;
   mp?: number;
   tp?: number;

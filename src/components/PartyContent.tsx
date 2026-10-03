@@ -44,7 +44,7 @@ const PartyContent: React.FC = () => {
   const renderBonus = (actor: ActorView) =>
     actor.paramPlus.map((value, i) => (
       <BonusItem key={i}>
-        <BonusLabel>Bonus {BONUS_LABELS[i]}:</BonusLabel>
+        <BonusLabel>Bonus {actor.paramLabels?.[i] ?? BONUS_LABELS[i]}:</BonusLabel>
         <BonusInput
           type="number"
           value={value}
@@ -56,12 +56,16 @@ const PartyContent: React.FC = () => {
   const renderStats = (actor: ActorView) =>
     STATS.filter(({ field, alwaysShown }) => (alwaysShown ? actor[field] !== undefined : actor[field])).map(({ field, label }) => {
       const id = `${field}-${actor.slot}`;
+      const range = actor.limits?.[field];
       return (
         <StatItem key={field}>
-          <StatLabel htmlFor={id}>{label}:</StatLabel>
+          <StatLabel htmlFor={id}>{actor.statLabels?.[field] ?? label}:</StatLabel>
           <BonusInput
             id={id}
             type="number"
+            min={range?.min}
+            max={range?.max}
+            title={range ? `${range.min}–${range.max}` : undefined}
             value={actor[field] || ''}
             onChange={(e) => update((ed, s) => ed.setActorField(s, actor.slot, field, Number(e.target.value)))}
           />

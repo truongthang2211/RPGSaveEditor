@@ -61,7 +61,18 @@ describe('VX Ace editor (synthetic save)', () => {
     expect(editor.getInventory(save, 'items')).toEqual({ 1: 3 });
     expect(editor.getInventory(save, 'armors')).toEqual({ 4: 1 });
     expect(editor.getActors(save)).toEqual([
-      { slot: 1, name: 'Éric', paramPlus: [0, 0, 0, 0, 0, 0, 0, 0], hp: 100, mp: 20, tp: 12.5, level: 3, exp: 300 },
+      {
+        slot: 1,
+        name: 'Éric',
+        paramPlus: [0, 0, 0, 0, 0, 0, 0, 0],
+        paramLabels: ['HP', 'MP', 'ATK', 'DEF', 'MAT', 'MDF', 'AGI', 'LUK'],
+        limits: { level: { min: 1, max: 99 } },
+        hp: 100,
+        mp: 20,
+        tp: 12.5,
+        level: 3,
+        exp: 300,
+      },
     ]);
     expect(editor.getSwitches(save)).toEqual([null, true, false]);
     expect(editor.getVariables(save)).toEqual({ 0: null, 1: 5, 2: 'hello' });
@@ -101,6 +112,13 @@ describe('VX Ace editor (synthetic save)', () => {
     const actor = (getField(getSymbolKey(edited[1], 'actors'), '@data') as MArray).items[1];
     const battler = getField(getField(actor, '@result'), '@battler');
     expect(battler).toBe(actor);
+  });
+
+  it('finds contents when a script writes an extra dump before it', () => {
+    const [header, contents] = makeSave();
+    const save: VxAceSave = [header, array(1, 2, 3), contents]; // e.g. a save thumbnail
+    expect(editor.getGold(save)).toBe(50);
+    expect(editor.getGold(reread(editor.setGold(save, 7)))).toBe(7);
   });
 
   it('reports a clear error for saves missing expected data', () => {
