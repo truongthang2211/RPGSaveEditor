@@ -7,8 +7,8 @@ import {
   MValue,
   TYPE,
 } from './types';
+import { bytesToBinaryString } from './binaryString';
 
-const latin1 = new TextDecoder('latin1');
 
 /**
  * Reads one Marshal dump starting at `offset`. Mirrors Ruby 1.9's marshal.c so
@@ -89,7 +89,7 @@ class Reader {
 
   /** The symbol's table slot is reserved before its encoding ivars are read (like r_symreal). */
   private symbolBody(hasIvars: boolean): MSymbol {
-    const sym: MSymbol = { kind: 'symbol', name: latin1.decode(this.bytes()) };
+    const sym: MSymbol = { kind: 'symbol', name: bytesToBinaryString(this.bytes()) };
     this.symbols.push(sym);
     if (hasIvars) sym.ivars = this.ivars();
     return sym;
@@ -151,7 +151,7 @@ class Reader {
       case TYPE.STRING:
         return this.register({ kind: 'string', bytes: this.bytes() });
       case TYPE.FLOAT:
-        return this.register({ kind: 'float', text: latin1.decode(this.bytes()) });
+        return this.register({ kind: 'float', text: bytesToBinaryString(this.bytes()) });
       case TYPE.BIGNUM: {
         const sign = String.fromCharCode(this.byte());
         if (sign !== '+' && sign !== '-') throw new Error(`Invalid bignum sign at offset ${start}`);
