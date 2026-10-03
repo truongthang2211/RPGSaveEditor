@@ -1,11 +1,11 @@
 {
-  "version": "1.3.0",
-  "notes": "## What's Changed\n\n- update latest.json for v1.2.0 (@github-actions[bot])\n- Fix updater: escape newlines in latest.json and improve workflow (@truongthang2211)\n- Fix updater by hosting latest.json on GitHub Pages (@truongthang2211)\n- Accept RPG Maker MZ .rmmzsave files (pako/zlib + LZ-String) (#11) (@DSeaStar)\n- Bump version to 1.3.0 (@truongthang2211)\n\n**Full Changelog**: https://github.com/truongthang2211/RPGSaveEditor/compare/v1.2.0...v1.3.0",
-  "pub_date": "2026-10-03T06:52:06Z",
+  "version": "1.4.0",
+  "notes": "## What's new\n- Support RPG Maker VX Ace (.rvdata2), VX (.rvdata) and XP (.rxdata) saves\n- Item, switch and variable names are read from the game's Data folder or its encrypted archive (Game.rgss3a / .rgss2a / .rgssad)\n- XP/VX/VX Ace saves are rewritten losslessly: data from game-specific scripts is kept as-is\n\n## Fixes\n- Party edits the right character; EXP uses the character's current class\n- Level is limited to 1–99 for XP/VX/VX Ace (higher levels crash the game menu)\n- Saving now reports errors instead of always showing \"File Saved!\"\n- Security updates: Tauri 2.12 and other dependencies\n\n**Full Changelog**: https://github.com/truongthang2211/RPGSaveEditor/compare/v1.3.0...v1.4.0",
+  "pub_date": "2026-10-03T11:28:14Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTN1gxbDc5b040QWF6S0ExcURuYVByQ3FwMDRBeXJWZWtNaUZEZ2d1d0NoWHdQNEZLL2lkM08zQ0FUNkM3ZXEwVzV2bHd6R213cWFSc2M3c1lWK0U1eGxKNzZ4dzArdkFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMDEwMzI2CWZpbGU6cnBnc2F2ZWVkaXRvcl8xLjMuMF94NjQtc2V0dXAuZXhlCkZUSTVVMm42b0lScFFtVFcyTHhUYXNLY3NkaUZHdndBdWpZQjhITkl3OXFlT05tQUpVOFlUZEphTFBmd3pwaWd4bzg1bzFTWmo0b1BuQmhHbjNIcEFBPT0K",
-      "url": "https://github.com/truongthang2211/RPGSaveEditor/releases/download/v1.3.0/rpgsaveeditor_1.3.0_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTN1gxbDc5b040QVNYZ2gyUGdjR0lWWm1sb0Nqd1cwNTFMRnBiM0tmR25SRmdERG5SSUluSWEzOWdyUXNtdlJEd2VVZ2VHbXJlWk5MaktCNThuVDNOTWJzQTQ4MkE3L0FFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMDI2ODkzCWZpbGU6cnBnc2F2ZWVkaXRvcl8xLjQuMF94NjQtc2V0dXAuZXhlCXZlcnNpb246MS40LjAKQjNaVGR2N2dYYVdLRTd2R3lEM1lYZ1FtREdCWHFTTXNFalp1Q0QzZHpwaFl4M1djZ2t2Y2xLcTZYOFR5MjRxNDVpclhneTljTXAzbCsrd21CcEFYQ1E9PQo=",
+      "url": "https://github.com/truongthang2211/RPGSaveEditor/releases/download/v1.4.0/rpgsaveeditor_1.4.0_x64-setup.exe"
     }
   }
 }
