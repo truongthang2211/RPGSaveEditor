@@ -41,38 +41,55 @@ jobs:
         with:
           script: |
             const tag = context.ref.replace('refs/tags/', '');
+            const { owner, repo } = context.repo;
 
             // Get all tags sorted by date
-            const tags = await github.rest.repos.listTags({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              per_page: 100
-            });
+            const tags = await github.rest.repos.listTags({ owner, repo, per_page: 100 });
 
             // Find previous tag (the one before current)
             const currentIndex = tags.data.findIndex(t => t.name === tag);
             const previousTag = currentIndex < tags.data.length - 1 ? tags.data[currentIndex + 1].name : null;
+            const changelog = previousTag
+              ? `\n\n**Full Changelog**: https://github.com/${owner}/${repo}/compare/${previousTag}...${tag}`
+              : '';
 
+            // 1) Annotated tag message wins: git tag -a vX.Y.Z --cleanup=whitespace -F notes.md
+            const { data: ref } = await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+            if (ref.object.type === 'tag') {
+              const { data: tagObj } = await github.rest.git.getTag({ owner, repo, tag_sha: ref.object.sha });
+              const message = tagObj.message.split('-----BEGIN PGP SIGNATURE-----')[0].trim();
+              if (message && message !== tag) {
+                const releaseNotes = message + changelog;
+                core.setOutput('notes', releaseNotes);
+                return releaseNotes;
+              }
+            }
+
+            // 2) Fallback: commit list without bot/dependency/merge noise
             let releaseNotes = '';
 
             if (previousTag) {
-              // Get commits between previous tag and current tag
-              const comparison = await github.rest.repos.compareCommits({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                base: previousTag,
-                head: tag
-              });
+              const comparison = await github.rest.repos.compareCommits({ owner, repo, base: previousTag, head: tag });
 
-              // Format commits as release notes
-              releaseNotes = '## What\'s Changed\n\n';
+              const isBot = c => /\[bot\]$/.test(c.author?.login || '') || /\[bot\]$/.test(c.commit.author.name);
+              const isNoise = msg => /^(Bump |Merge |Revert "Bump |update latest\.json)/i.test(msg);
+
+              const lines = [];
+              let dependencyUpdates = 0;
               for (const commit of comparison.data.commits) {
                 const message = commit.commit.message.split('\n')[0]; // First line only
+                if (isBot(commit) || isNoise(message)) {
+                  if (/^Bump /i.test(message)) dependencyUpdates++;
+                  continue;
+                }
                 const author = commit.commit.author.name;
-                releaseNotes += `- ${message} (@${commit.author?.login || author})\n`;
+                lines.push(`- ${message} (@${commit.author?.login || author})`);
+              }
+              if (dependencyUpdates > 0) {
+                lines.push(`- Updated dependencies (${dependencyUpdates} updates)`);
               }
 
-              releaseNotes += `\n**Full Changelog**: https://github.com/${context.repo.owner}/${context.repo.repo}/compare/${previousTag}...${tag}`;
+              releaseNotes = '## What\'s Changed\n\n' + (lines.length ? lines.join('\n') : '- Maintenance release') + changelog;
             } else {
               releaseNotes = 'Initial release\n\nSee the assets below to download and install.';
             }
