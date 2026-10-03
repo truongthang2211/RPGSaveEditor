@@ -26,7 +26,7 @@
     "react-icons": "^5.5.0",
     "react-intersection-observer": "^9.16.0",
     "react-toastify": "^10.0.6",
-    "styled-components": "^6.5.3"
+    "styled-components": "^6.1.12"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.9.1",
