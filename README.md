@@ -53,7 +53,7 @@ If you find this tool useful, please consider supporting us:
 
 ## Features
 
-- Open and edit `.rpgsave` files.
+- Open and edit RPG Maker MV (`.rpgsave`, LZ-String) and MZ (`.rmmzsave`, pako/zlib) save files.
 - Modify game data such as party, items, switches, and variables.
 - Supports light and dark modes.
 - Easy-to-use interface with file selection and reload options.
@@ -70,7 +70,7 @@ If you find this tool useful, please consider supporting us:
 ## Usage
 
 1. Launch the application.
-2. Click on the file icon to open a `.rpgsave` file.
+2. Click on the file icon to open a `.rpgsave` (MV) or `.rmmzsave` (MZ) file.
 3. Edit the desired data using the available sections in the sidebar.
 4. Save your changes or reload the file if needed.
 

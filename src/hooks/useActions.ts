@@ -2,10 +2,10 @@ import { useCallback } from 'react';
 import { ContentType, useContent } from '../context/ContentContext';
 import { readFile, selectFile, writeFile } from '../utils/fileUtils';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
-import { decodeRpgsave, encodeRpgsave } from '../utils/rpgsaveUtils';
+import { decodeRpgsave, encodeRpgsave, preferredCodecForPath } from '../utils/rpgsaveUtils';
+import { fileNameFromPath, isRpgSavePath } from '../utils/saveExtensions';
 import { toast } from 'react-toastify';
 import { rpgSaveToSaveData } from '../utils/saveDataUtils';
-import { RPGSave } from '../types/RPGSave';
 import { dirname, join } from '@tauri-apps/api/path';
 
 
@@ -14,23 +14,25 @@ export const useFileUpload = () => {
 
   const handleReadFile = useCallback(async (filePath: string) => {
     try {
-      const fileContent = await readFile(filePath);
-      if (!filePath.endsWith('.rpgsave')) {
-        return errorNotify('Invalid file type! Please upload a .rpgsave file.');
+      if (!isRpgSavePath(filePath)) {
+        return errorNotify('Invalid file type! Please upload a .rpgsave or .rmmzsave file.');
       }
+      const fileContent = await readFile(filePath);
 
-      const decodedContent: RPGSave = decodeRpgsave(fileContent);
-      const decodedContent2: RPGSave = decodeRpgsave(fileContent);
+      const preferred = preferredCodecForPath(filePath);
+      const decoded = await decodeRpgsave(fileContent, preferred);
+      const decodedOrigin = await decodeRpgsave(fileContent, decoded.codec);
       const gameName = getNameOfGame(filePath);
 
       const contentData: ContentType = {
         ...content,
         oldSaveData: gameName !== content?.gameName ? undefined : content?.originSaveData,
-        saveData: rpgSaveToSaveData(decodedContent),
-        originSaveData: rpgSaveToSaveData(decodedContent2),
-        fileName: filePath.split('\\').pop() || '',
+        saveData: rpgSaveToSaveData(decoded.data),
+        originSaveData: rpgSaveToSaveData(decodedOrigin.data),
+        fileName: fileNameFromPath(filePath),
         filePath,
         gameName,
+        saveCodec: decoded.codec,
         itemData: await loadJsonData(filePath, 'Items'),
         systemData: await loadJsonData(filePath, 'System'),
         weaponsData: await loadJsonData(filePath, 'Weapons'),
@@ -91,17 +93,20 @@ export const useReload = () => {
 
   const handleReadFile = useCallback(async (filePath: string) => {
     try {
-      const fileContent = await readFile(filePath);
-      if (filePath.endsWith('.rpgsave')) {
-        const decodedContent: RPGSave = decodeRpgsave(fileContent);
-        const decodedContent2: RPGSave = decodeRpgsave(fileContent);
-        setContent((prev: any) => ({
-          ...prev,
-          oldSaveData: prev?.originSaveData || undefined,
-          saveData: rpgSaveToSaveData(decodedContent),
-          originSaveData: rpgSaveToSaveData(decodedContent2),
-        }));
+      if (!isRpgSavePath(filePath)) {
+        return errorNotify('Invalid file type! Please upload a .rpgsave or .rmmzsave file.');
       }
+      const fileContent = await readFile(filePath);
+      const preferred = preferredCodecForPath(filePath);
+      const decoded = await decodeRpgsave(fileContent, preferred);
+      const decodedOrigin = await decodeRpgsave(fileContent, decoded.codec);
+      setContent((prev: any) => ({
+        ...prev,
+        oldSaveData: prev?.originSaveData || undefined,
+        saveData: rpgSaveToSaveData(decoded.data),
+        originSaveData: rpgSaveToSaveData(decodedOrigin.data),
+        saveCodec: decoded.codec,
+      }));
       successNotify('File Reloaded!');
     } catch (error) {
       errorNotify(`Error Reloading File Save! \n${error}`);
@@ -124,7 +129,7 @@ export const useSave = () => {
   const save = useCallback(async () => {
     try {
       if (content.filePath) {
-        const encodedContent = encodeRpgsave(JSON.stringify(content.saveData));
+        const encodedContent = await encodeRpgsave(JSON.stringify(content.saveData), content.saveCodec ?? 'lzstring');
         await writeFile(content.filePath, encodedContent);
         successNotify('File Saved!')
       }
@@ -135,7 +140,7 @@ export const useSave = () => {
 
     }
 
-  }, [content.filePath, content.saveData]);
+  }, [content.filePath, content.saveData, content.saveCodec]);
 
   return save;
 };
@@ -143,11 +148,10 @@ export const useSave = () => {
 
 const getJsonFilePath = async (originalPath: string, fileName: string): Promise<string> => {
   try {
-    // Get the parent directory of the .rpgsave file (e.g. 'D:\Gamess\AmongUs\Winter Memories (Kagura v1.08)\www')
+    // Parent of save/ is www/ (MV) or the game root (MZ). Both keep data/*.json there.
     const saveDir = await dirname(originalPath);
-    const wwwDir = await dirname(saveDir);
-    // Join: wwwDir + '/data' + fileName.json (cross-platform)
-    const jsonPath = await join(wwwDir, 'data', `${fileName}.json`);
+    const gameOrWwwDir = await dirname(saveDir);
+    const jsonPath = await join(gameOrWwwDir, 'data', `${fileName}.json`);
     
     return jsonPath;
   } catch (error) {
@@ -156,11 +160,13 @@ const getJsonFilePath = async (originalPath: string, fileName: string): Promise<
   }
 };
 function getNameOfGame(originalPath: string): string {
-  const pathParts = originalPath.split('\\');
-  pathParts.pop() // 'file1.rpgsave'
-  pathParts.pop() // 'save'
-  pathParts.pop() // 'www'
-  const gameName = pathParts.pop();
+  const pathParts = originalPath.split(/[/\\]/).filter(Boolean);
+  pathParts.pop(); // file1.rpgsave / file1.rmmzsave
+  pathParts.pop(); // save
+  let gameName = pathParts.pop(); // www (MV) or game folder (MZ)
+  if (gameName && gameName.toLowerCase() === 'www') {
+    gameName = pathParts.pop();
+  }
   console.log(gameName);
 
   if (gameName) {
@@ -169,6 +175,7 @@ function getNameOfGame(originalPath: string): string {
   warningNotify('Could not determine game name from file path.');
   return 'Unknown Game';
 }
+
 const successNotify = (text: string) => {
   toast.success(text, {
     position: "bottom-right",
