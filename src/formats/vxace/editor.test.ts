@@ -113,6 +113,13 @@ describe('VX Ace editor (synthetic save)', () => {
     expect(battler).toBe(actor);
   });
 
+  it('finds contents when a script writes an extra dump before it', () => {
+    const [header, contents] = makeSave();
+    const save: VxAceSave = [header, array(1, 2, 3), contents]; // e.g. a save thumbnail
+    expect(editor.getGold(save)).toBe(50);
+    expect(editor.getGold(reread(editor.setGold(save, 7)))).toBe(7);
+  });
+
   it('reports a clear error for saves missing expected data', () => {
     const save: VxAceSave = [symHash({}), symHash({})];
     expect(editor.getGold(save)).toBe(0);

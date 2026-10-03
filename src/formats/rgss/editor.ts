@@ -40,10 +40,17 @@ const INVENTORY_FIELDS: Record<InventoryKind, string> = {
   armors: '@armors',
 };
 
-/** VX Ace: DataManager.make_save_contents -> contents[:party] etc. */
+/**
+ * VX Ace: DataManager.make_save_contents -> contents[:party] etc. Contents is
+ * normally the second dump, but scripts may write extra dumps (e.g. a
+ * thumbnail between header and contents), so every dump is searched.
+ */
 export const locateInContents = (save: RgssSave, part: RgssPart): MObject | undefined => {
-  const value = getSymbolKey(save?.[1], part);
-  return isNode(value, 'object') ? value : undefined;
+  for (const dump of save ?? []) {
+    const value = getSymbolKey(dump, part);
+    if (isNode(value, 'object')) return value;
+  }
+  return undefined;
 };
 
 const CLASS_NAMES: Record<RgssPart, string> = {
