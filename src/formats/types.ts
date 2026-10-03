@@ -63,6 +63,37 @@ export interface SaveEditor<S = any> {
   setVariable(save: S, id: number, value: any): S;
 }
 
+/** A value shown/edited in the Advanced tree. */
+export type TreeValue = number | string | boolean | null;
+
+/** One row of the Advanced tab: a container (object/array/hash...) or a leaf value. */
+export interface TreeNode {
+  /** Stable path-based id (expansion state, React keys). */
+  id: string;
+  /** Field name, index or hash key as shown to the user. */
+  key: string;
+  /** Type label: class name, "Array", "Hash", "Integer", "Float", "String", "Boolean", "nil"... */
+  type: string;
+  /** Short description for containers and read-only values (e.g. "Array(722)", "Table · 1,240 bytes"). */
+  summary?: string;
+  /** Leaf value (containers have none). */
+  value?: TreeValue;
+  /** Leaves that may be edited, and with which kind of input. */
+  editable?: 'number' | 'string' | 'boolean';
+  hasChildren: boolean;
+  /** Format-specific locator; opaque to the UI. */
+  ref: unknown;
+}
+
+/** Generic tree access to a whole save (Advanced tab). Setters never mutate the save. */
+export interface SaveTree<S = any> {
+  roots(save: S): TreeNode[];
+  children(save: S, node: TreeNode): TreeNode[];
+  /** Current value of a leaf in `save` (used to compare against the loaded file). */
+  valueOf(save: S, node: TreeNode): TreeValue | undefined;
+  setValue(save: S, node: TreeNode, value: TreeValue): S;
+}
+
 export interface LoadedSave<S = any> {
   data: S;
   /** Format-specific details needed to write the file back (e.g. which codec it used). */
@@ -85,4 +116,6 @@ export interface SaveFormat<S = any> {
   /** Game folder name derived from the save path, or null if it can't be determined. */
   gameName(saveFilePath: string): string | null;
   editor: SaveEditor<S>;
+  /** Raw tree access for the Advanced tab. */
+  tree: SaveTree<S>;
 }

@@ -4,6 +4,7 @@ import { GameDatabase, SaveFormat } from '../types';
 import { decodeRpgsave, encodeRpgsave, MvMzSave, preferredCodecForPath, SaveCodec } from './codec';
 import { mvmzEditor } from './editor';
 import { isMvMzSavePath, MVMZ_EXTENSIONS, mvmzGameName } from './paths';
+import { mvmzTree } from './tree';
 
 /** data/<name>.json next to save/: <Game>/www/data (MV) or <Game>/data (MZ). */
 async function dataFilePath(savePath: string, name: string): Promise<string> {
@@ -65,4 +66,5 @@ export const mvmzFormat: SaveFormat<MvMzSave> = {
 
   gameName: mvmzGameName,
   editor: mvmzEditor,
+  tree: mvmzTree,
 };

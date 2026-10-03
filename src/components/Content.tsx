@@ -5,6 +5,7 @@ import InventoryContent from './InventoryContent';
 import SwitchesContent from './SwitchesContent';
 import VariablesContent from './VariablesContent';
 import AboutContent from './AboutContent';
+import AdvancedContent from './AdvancedContent';
 import ErrorBoundary from './ErrorBoundary';
 import EmptyState from './EmptyState';
 import { useContent } from '../context/ContentContext';
@@ -47,6 +48,9 @@ const Content: React.FC<ContentProps> = ({ page }) => {
       break;
     case 'Armors':
       displayContent = <InventoryContent key="armors" kind="armors" label="Armor" />;
+      break;
+    case 'Advanced':
+      displayContent = <AdvancedContent />;
       break;
     case 'About':
       displayContent = <AboutContent />;

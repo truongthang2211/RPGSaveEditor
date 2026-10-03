@@ -56,6 +56,7 @@ If you find this tool useful, please consider supporting us:
 - Open and edit RPG Maker MV (`.rpgsave`, LZ-String), MZ (`.rmmzsave`, pako/zlib), VX Ace (`SaveNN.rvdata2`), VX (`SaveN.rvdata`) and XP (`SaveN.rxdata`) save files.
 - XP/VX/VX Ace saves (Ruby Marshal) are rewritten losslessly: everything the editor doesn't change, including data from game-specific scripts, is kept byte-for-byte.
 - Modify game data such as party, items, switches, and variables.
+- **Advanced** tab: browse every value in the save as a tree, search by key, type or value, and edit numbers, text and true/false values (useful for games whose scripts store data in their own places).
 - Supports light and dark modes.
 - Easy-to-use interface with file selection and reload options.
 - Sidebar navigation with sections for Party, Items, Switches, and Variables.

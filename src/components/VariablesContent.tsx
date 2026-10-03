@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { QuantityInput } from '../styles/ItemsContentStyles';
+import React, { useCallback, useMemo } from 'react';
+import ValueInput from './ValueInput';
 import { getDifferences } from '../utils/textUtils';
 import DataTable, { CellValue, Column } from './DataTable';
 import { useSaveEditor } from '../hooks/useSaveEditor';
@@ -18,8 +18,6 @@ interface Row {
   gap: CellValue;
 }
 
-const NUMBER = /^-?\d+(\.\d+)?$/;
-
 const asCell = (value: VariableValue): CellValue => value ?? 0;
 
 /** Numeric difference, or the differing characters for text values. */
@@ -29,52 +27,6 @@ function gapOf(origin: VariableValue, old: VariableValue): CellValue {
   if (typeof a === 'number' && typeof b === 'number') return a - b;
   return getDifferences(String(a), String(b));
 }
-
-/**
- * Keeps a variable's type: numeric variables only take valid numbers (an empty
- * or partial entry isn't written and is restored on blur), text variables stay
- * text even when they look like numbers.
- */
-const VariableInput: React.FC<{
-  value: VariableValue;
-  changed: boolean;
-  label: string;
-  onCommit: (value: number | string) => void;
-}> = ({ value, changed, label, onCommit }) => {
-  const isText = typeof value === 'string';
-  const shown = value === null || typeof value === 'boolean' ? String(value ?? 0) : String(value);
-  const [draft, setDraft] = useState(shown);
-  const [editing, setEditing] = useState(false);
-
-  useEffect(() => {
-    if (!editing) setDraft(shown);
-  }, [shown, editing]);
-
-  const invalid = !isText && !NUMBER.test(draft.trim());
-
-  return (
-    <QuantityInput
-      type="text"
-      inputMode={isText ? 'text' : 'numeric'}
-      value={draft}
-      $changed={changed}
-      aria-label={label}
-      aria-invalid={invalid}
-      title={invalid ? 'Enter a number' : undefined}
-      onFocus={() => setEditing(true)}
-      onBlur={() => {
-        setEditing(false);
-        setDraft(shown);
-      }}
-      onChange={(e) => {
-        const text = e.target.value;
-        setDraft(text);
-        if (isText) onCommit(text);
-        else if (NUMBER.test(text.trim())) onCommit(Number(text));
-      }}
-    />
-  );
-};
 
 const VariablesContent: React.FC = () => {
   const { editor, save, origin, old, database, update } = useSaveEditor();
@@ -124,8 +76,9 @@ const VariablesContent: React.FC = () => {
       title: CHANGED_HELP,
       value: (r) => asCell(r.value),
       render: (r) => (
-        <VariableInput
-          value={r.value}
+        <ValueInput
+          value={r.value === null || typeof r.value === 'boolean' ? String(r.value ?? 0) : r.value}
+          mode={typeof r.value === 'string' ? 'text' : 'number'}
           changed={asCell(r.value) !== asCell(r.origin)}
           label={`${r.name} value`}
           onCommit={(value) => onCommit(r.id, value)}
