@@ -1,41 +1,21 @@
-name: CI
+name: CI rust
 
+# Pull requests only, and only when the Tauri/Rust side changes
+# (e.g. Dependabot Cargo.lock bumps, capabilities, tauri.conf.json).
 on:
   pull_request:
-  push:
-    branches: [main, update-libs]
+    paths:
+      - 'src-tauri/**'
+      - '.github/workflows/ci-rust.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-rust-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  frontend:
-    name: Type-check, test and build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Type-check
-        run: npx tsc --noEmit
-
-      - name: Unit tests
-        run: npx vitest run
-
-      - name: Build frontend
-        run: npx vite build
-
   rust:
     name: Rust check
     runs-on: ubuntu-latest
