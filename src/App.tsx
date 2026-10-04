@@ -10,6 +10,8 @@ import { ContentProvider } from './context/ContentContext';
 import Hotkeys from './components/Hotkeys';
 import WindowEvents from './components/WindowEvents';
 import ScrollToTop from './components/ScrollToTop';
+import UpdateNotifier from './components/UpdateNotifier';
+import DialogHost from './components/DialogHost';
 import { ToastContainer } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
 
@@ -73,6 +75,7 @@ const App: React.FC = () => {
     <ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
       <ContentProvider>
         <WindowEvents />
+        <UpdateNotifier />
         <Hotkeys>
           <AppContainer>
             <Header toggleTheme={toggleTheme} isDarkMode={isDarkMode} />
@@ -86,7 +89,8 @@ const App: React.FC = () => {
           </AppContainer>
         </Hotkeys>
       </ContentProvider>
-      <ToastContainer />
+      <ToastContainer theme={isDarkMode ? 'dark' : 'light'} />
+      <DialogHost />
     </ThemeProvider>
   );
 };
