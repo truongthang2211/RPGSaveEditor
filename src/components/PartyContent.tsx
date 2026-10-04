@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import {
   Label,
@@ -16,6 +16,7 @@ import {
   BonusLabel
 } from '../styles/PartyContentStyles';
 import { useSaveEditor } from '../hooks/useSaveEditor';
+import { useRemembered } from '../hooks/useRemembered';
 import { ActorField, ActorView } from '../formats';
 
 const BONUS_LABELS = ['HP', 'MP', 'ATK', 'DEF', 'MAT', 'MDF', 'AGI', 'LUK'];
@@ -55,7 +56,7 @@ function summaryOf(actor: ActorView): string {
 
 const PartyContent: React.FC = () => {
   const { editor, save, origin, update } = useSaveEditor();
-  const [expandedSlot, setExpandedSlot] = useState<number | null>(null);
+  const [expandedSlot, setExpandedSlot] = useRemembered<number | null>('party.expandedSlot', null);
 
   if (!editor || !save) return <Container />;
 

@@ -61,7 +61,9 @@ export function toNumber(value: MValue | undefined): number | undefined {
     if (value.text === 'inf') return Infinity;
     if (value.text === '-inf') return -Infinity;
     if (value.text === 'nan') return NaN;
-    return Number(value.text);
+    // Older Rubies (RGSS1/2) write "%.16g", a NUL and mantissa bytes; Ruby reads up to the NUL.
+    const nul = value.text.indexOf('\0');
+    return Number(nul < 0 ? value.text : value.text.slice(0, nul));
   }
   if (isNode(value, 'bignum')) {
     let n = 0n;

@@ -8,6 +8,7 @@
     "updater:default",
     "dialog:allow-open",
     "dialog:default",
+    "opener:default",
     "fs:default",
     "fs:allow-app-write",
     "fs:allow-app-read",

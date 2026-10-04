@@ -6,6 +6,7 @@ import { loadRgssDatabase } from '../rgss/loadDatabase';
 import { isRgssSavePath, rgssGameName } from '../rgss/paths';
 import { SaveFormat } from '../types';
 import { VxAceSave, vxaceEditor } from './editor';
+import { rgssTree } from '../rgss/tree';
 
 export const vxaceFormat: SaveFormat<VxAceSave> = {
   id: 'vxace',
@@ -28,4 +29,5 @@ export const vxaceFormat: SaveFormat<VxAceSave> = {
   loadDatabase: (savePath) => loadRgssDatabase(savePath, { extension: 'rvdata2', archive: 'Game.rgss3a' }),
   gameName: rgssGameName,
   editor: vxaceEditor,
+  tree: rgssTree,
 };

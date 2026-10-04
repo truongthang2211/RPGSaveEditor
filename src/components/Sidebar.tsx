@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faBox, faToggleOn, faCogs, faGun, faShieldHalved, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
+import { faUsers, faBox, faToggleOn, faCogs, faGun, faShieldHalved, faInfoCircle, faSitemap } from '@fortawesome/free-solid-svg-icons';
 
 const SidebarItem = styled.div<{ $isSelected: boolean }>`
   display: flex;
@@ -92,6 +92,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onSelect, selectedContent }) => {
         >
           <Icon icon={faCogs} />
           Variables
+        </SidebarItem>
+        <SidebarItem
+          onClick={() => onSelect('Advanced')}
+          $isSelected={selectedContent === 'Advanced'}
+        >
+          <Icon icon={faSitemap} />
+          Advanced
         </SidebarItem>
       </SidebarContent>
       <AboutSection>

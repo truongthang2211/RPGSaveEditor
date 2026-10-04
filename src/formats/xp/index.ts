@@ -7,6 +7,7 @@ import { loadRgssDatabase } from '../rgss/loadDatabase';
 import { isRgssSavePath, rgssGameName } from '../rgss/paths';
 import { SaveFormat } from '../types';
 import { xpEditor } from './editor';
+import { rgssTree } from '../rgss/tree';
 
 export const xpFormat: SaveFormat<RgssSave> = {
   id: 'xp',
@@ -27,4 +28,5 @@ export const xpFormat: SaveFormat<RgssSave> = {
   loadDatabase: (savePath) => loadRgssDatabase(savePath, { extension: 'rxdata', archive: 'Game.rgssad' }),
   gameName: rgssGameName,
   editor: xpEditor,
+  tree: rgssTree,
 };

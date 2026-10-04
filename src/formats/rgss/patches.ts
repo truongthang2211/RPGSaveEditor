@@ -1,4 +1,4 @@
-import { MArray, MHash, MObject, MValue } from '../marshal/types';
+import { MArray, MHash, MObject, MStruct, MValue } from '../marshal/types';
 import { arrayItems, getField, isNode, setArrayItem, setField, setIntKey } from '../marshal/helpers';
 
 /**
@@ -14,7 +14,12 @@ export interface RgssSave {
   patches: Patches;
 }
 
-/** Per node: "f:@ivar" (object field), "i:3" (array index) or "k:20" (Integer hash key) -> value. */
+/**
+ * Per node -> value, by slot:
+ * "f:@ivar" object field, "i:3" array index, "k:20" Integer hash key,
+ * "e:2" value of the 3rd hash entry (non-Integer keys, e.g. symbols),
+ * "m:1" Struct member, "d:4" a whole dump (keyed on the dumps array).
+ */
 export type Patches = ReadonlyMap<object, ReadonlyMap<string, MValue>>;
 
 export const fromDumps = (dumps: MValue[]): RgssSave => ({ dumps, patches: new Map() });
@@ -22,6 +27,20 @@ export const fromDumps = (dumps: MValue[]): RgssSave => ({ dumps, patches: new M
 const fieldKey = (name: string) => `f:${name}`;
 const indexKey = (index: number) => `i:${index}`;
 const hashKey = (key: number) => `k:${key}`;
+const entryKey = (index: number) => `e:${index}`;
+const memberKey = (index: number) => `m:${index}`;
+const dumpKey = (index: number) => `d:${index}`;
+
+/** Overrides of one kind ("i", "k", ...) for a node, as [number, value]. */
+function overridesOf(patches: Patches, node: object, kind: string): [number, MValue][] {
+  const overrides = patches.get(node);
+  if (!overrides) return [];
+  const result: [number, MValue][] = [];
+  for (const [key, value] of overrides) {
+    if (key[0] === kind) result.push([Number(key.slice(2)), value]);
+  }
+  return result;
+}
 
 function withPatch(save: RgssSave, node: object, key: string, value: MValue): RgssSave {
   const patches = new Map(save.patches);
@@ -35,6 +54,12 @@ export const patchIndex = (save: RgssSave, array: MArray, index: number, value: 
   withPatch(save, array, indexKey(index), value);
 export const patchIntKey = (save: RgssSave, hash: MHash, key: number, value: MValue) =>
   withPatch(save, hash, hashKey(key), value);
+export const patchEntry = (save: RgssSave, hash: MHash, index: number, value: MValue) =>
+  withPatch(save, hash, entryKey(index), value);
+export const patchMember = (save: RgssSave, struct: MStruct, index: number, value: MValue) =>
+  withPatch(save, struct, memberKey(index), value);
+export const patchDump = (save: RgssSave, index: number, value: MValue) =>
+  withPatch(save, save.dumps, dumpKey(index), value);
 
 /** Reads the save as if the patches were applied. */
 export class PatchedView {
@@ -51,32 +76,56 @@ export class PatchedView {
     return patched ? patched.value : getField(obj, name);
   }
 
+  /** Field names, including fields added by patches. */
+  fieldNames(obj: MValue | undefined): string[] {
+    if (!isNode(obj, 'object')) return [];
+    const names = obj.fields.map(([key]) => key.name);
+    for (const key of this.patches.get(obj)?.keys() ?? []) {
+      if (key.startsWith('f:') && !names.includes(key.slice(2))) names.push(key.slice(2));
+    }
+    return names;
+  }
+
   /** Array items with patched indices applied (including ones past the end, padded with nil). */
   items(array: MValue | undefined): MValue[] {
     const base = arrayItems(array);
-    const overrides = isNode(array, 'array') ? this.patches.get(array) : undefined;
-    if (!overrides) return base;
+    if (!isNode(array, 'array')) return base;
+    const overrides = overridesOf(this.patches, array, 'i');
+    if (!overrides.length) return base;
     const items = [...base];
-    for (const [key, value] of overrides) {
-      const index = Number(key.slice(2));
+    for (const [index, value] of overrides) {
       while (items.length < index) items.push(null);
       items[index] = value;
     }
     return items;
   }
 
+  /** Value of the hash entry at `index` (for non-Integer keys). */
+  entryValue(hash: MHash, index: number): MValue {
+    const patched = this.patched(hash, entryKey(index));
+    return patched ? patched.value : hash.entries[index][1];
+  }
+
+  member(struct: MStruct, index: number): MValue {
+    const patched = this.patched(struct, memberKey(index));
+    return patched ? patched.value : struct.members[index][1];
+  }
+
+  dump(dumps: MValue[], index: number): MValue {
+    const patched = this.patched(dumps, dumpKey(index));
+    return patched ? patched.value : dumps[index];
+  }
+
   /** Integer-keyed entries with patched keys applied (new keys appended). */
   intEntries(hash: MValue | undefined): [number, MValue][] {
     if (!isNode(hash, 'hash')) return [];
-    const overrides = this.patches.get(hash);
+    const overrides = new Map(overridesOf(this.patches, hash, 'k'));
     const entries: [number, MValue][] = [];
     for (const [key, value] of hash.entries) {
       if (typeof key !== 'number') continue;
-      const patched = overrides?.has(hashKey(key));
-      entries.push([key, patched ? overrides!.get(hashKey(key))! : value]);
+      entries.push([key, overrides.has(key) ? overrides.get(key)! : value]);
     }
-    for (const [key, value] of overrides ?? []) {
-      const id = Number(key.slice(2));
+    for (const [id, value] of overrides) {
       if (!hash.entries.some(([k]) => k === id)) entries.push([id, value]);
     }
     return entries;
@@ -99,9 +148,12 @@ export function materialize(save: RgssSave): MValue[] {
     for (const [key, value] of overrides) {
       const kind = key[0];
       const rest = key.slice(2);
-      if (kind === 'f' && isNode(node as MValue, 'object')) setField(node as MObject, rest, value);
+      if (kind === 'd' && Array.isArray(node)) node[Number(rest)] = value;
+      else if (kind === 'f' && isNode(node as MValue, 'object')) setField(node as MObject, rest, value);
       else if (kind === 'i' && isNode(node as MValue, 'array')) setArrayItem(node as MArray, Number(rest), value);
       else if (kind === 'k' && isNode(node as MValue, 'hash')) setIntKey(node as MHash, Number(rest), value);
+      else if (kind === 'e' && isNode(node as MValue, 'hash')) (node as MHash).entries[Number(rest)][1] = value;
+      else if (kind === 'm' && isNode(node as MValue, 'struct')) (node as MStruct).members[Number(rest)][1] = value;
     }
   }
   return dumps;

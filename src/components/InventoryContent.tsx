@@ -96,7 +96,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({ kind, label }) => {
     { key: 'gap', label: 'GAP', width: '10%', title: GAP_COLUMN_HELP, value: (r) => r.gap },
   ], [onQuantityChange]);
 
-  return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} />;
+  return <DataTable stateKey={kind} rows={rows} columns={columns} rowKey={(r) => r.id} />;
 };
 
 export default InventoryContent;

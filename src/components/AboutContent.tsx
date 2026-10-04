@@ -5,6 +5,7 @@ import paypalImg from '../assets/paypal.png';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { getVersion } from '@tauri-apps/api/app';
+import ExternalLink from './ExternalLink';
 
 const AboutContainer = styled.div`
   padding: 20px;
@@ -16,7 +17,7 @@ const AboutHeader = styled.h2`
   color: ${({ theme }) => theme.primaryColor};
 `;
 
-const Link = styled.a`
+const Link = styled(ExternalLink)`
   color: ${({ theme }) => theme.primaryColor};
   text-decoration: none;
   &:hover {
@@ -171,7 +172,7 @@ const About: React.FC = () => {
       <AboutHeader>About This App</AboutHeader>
       <p>This application is designed to help you modify and manage RPG save files effectively.</p>
       <p>Version: {version}</p>
-      <p>Check out the source code on <Link href="https://github.com/truongthang2211/RPGSaveEditor" target="_blank" rel="noopener noreferrer">GitHub</Link>.</p>
+      <p>Check out the source code on <Link href="https://github.com/truongthang2211/RPGSaveEditor">GitHub</Link>.</p>
       
       <UpdateButton 
         onClick={checkForUpdates}
@@ -199,12 +200,12 @@ const About: React.FC = () => {
       
       <p>If you find this app useful and want to support its development, you can:</p>
       <DonateContainer>
-        <a href="https://www.buymeacoffee.com/truongthang2211" target="_blank" rel="noopener noreferrer">
+        <ExternalLink href="https://www.buymeacoffee.com/truongthang2211" aria-label="Buy Me a Coffee">
           <DonateImage src={buyMeACoffeeImg} alt="Buy Me a Coffee" />
-        </a>
-        <a href="https://www.paypal.me/truongthang2211" target="_blank" rel="noopener noreferrer">
+        </ExternalLink>
+        <ExternalLink href="https://www.paypal.me/truongthang2211" aria-label="Donate via PayPal">
           <DonateImage src={paypalImg} alt="Donate via PayPal" />
-        </a>
+        </ExternalLink>
       </DonateContainer>
       
     </AboutContainer>

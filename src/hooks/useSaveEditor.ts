@@ -21,12 +21,23 @@ export const useSaveEditor = () => {
     [setContent],
   );
 
+  /** Applies any save -> save change (e.g. the Advanced tree's setValue). */
+  const updateSave = useCallback(
+    (change: (save: any) => any) => {
+      setContent((prev) => (prev.saveData ? { ...prev, saveData: change(prev.saveData), dirty: true } : prev));
+    },
+    [setContent],
+  );
+
   return {
+    format: content.format,
+    tree: content.format?.tree,
     editor,
     save: content.saveData,
     origin: content.originSaveData,
     old: content.oldSaveData,
     database: content.database,
     update,
+    updateSave,
   };
 };
