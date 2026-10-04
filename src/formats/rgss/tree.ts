@@ -63,16 +63,16 @@ const isContainer = (value: MValue): value is MObject | MArray | MHash | MStruct
   isNode(value, 'object') || isNode(value, 'array') || isNode(value, 'hash') || isNode(value, 'struct') ||
   isNode(value, 'usermarshal') || isNode(value, 'data');
 
-function describe(value: MValue): Pick<TreeNode, 'type' | 'summary' | 'value' | 'editable'> {
+function describe(value: MValue): Pick<TreeNode, 'type' | 'summary' | 'value' | 'editable' | 'integer'> {
   if (value === null) return { type: 'nil', value: null };
   if (typeof value === 'boolean') return { type: 'Boolean', value, editable: 'boolean' };
-  if (typeof value === 'number') return { type: 'Integer', value, editable: 'number' };
+  if (typeof value === 'number') return { type: 'Integer', value, editable: 'number', integer: true };
   switch (value.kind) {
     case 'float': {
       const n = toNumber(value)!;
       return Number.isFinite(n) ? { type: 'Float', value: n, editable: 'number' } : { type: 'Float', value: value.text };
     }
-    case 'bignum': return { type: 'Integer', value: toNumber(value)!, editable: 'number' };
+    case 'bignum': return { type: 'Integer', value: toNumber(value)!, editable: 'number', integer: true };
     case 'string': {
       const text = decodeString(value) ?? '';
       return encodingOf(value) === 'other'

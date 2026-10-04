@@ -80,6 +80,8 @@ export interface TreeNode {
   value?: TreeValue;
   /** Leaves that may be edited, and with which kind of input. */
   editable?: 'number' | 'string' | 'boolean';
+  /** Number values that must stay whole numbers (Ruby Integer, Python int). */
+  integer?: boolean;
   hasChildren: boolean;
   /**
    * The underlying container, when the same one can appear at several paths
@@ -105,6 +107,16 @@ export interface LoadedSave<S = any> {
   meta?: unknown;
 }
 
+/** Sidebar pages that edit a save. */
+export type EditorPage = 'Party' | 'Items' | 'Weapons' | 'Armors' | 'Switches' | 'Variables' | 'Advanced';
+
+/** A variable known by name (e.g. a Ren'Py store variable). */
+export interface NamedVariable {
+  name: string;
+  /** Its leaf in the format's tree; edited with `tree.setValue`. */
+  node: TreeNode;
+}
+
 export interface DatabaseResult {
   database: GameDatabase;
   warnings: string[];
@@ -123,4 +135,8 @@ export interface SaveFormat<S = any> {
   editor: SaveEditor<S>;
   /** Raw tree access for the Advanced tab. */
   tree: SaveTree<S>;
+  /** Pages that apply to this format (default: all). */
+  pages?: readonly EditorPage[];
+  /** Variables by name, shown on the Variables page instead of numbered ones. */
+  namedVariables?(save: S): NamedVariable[];
 }

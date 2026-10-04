@@ -4,6 +4,7 @@ import PartyContent from './PartyContent';
 import InventoryContent from './InventoryContent';
 import SwitchesContent from './SwitchesContent';
 import VariablesContent from './VariablesContent';
+import NamedVariablesContent from './NamedVariablesContent';
 import AboutContent from './AboutContent';
 import AdvancedContent from './AdvancedContent';
 import ErrorBoundary from './ErrorBoundary';
@@ -41,7 +42,7 @@ const Content: React.FC<ContentProps> = ({ page }) => {
       displayContent = <SwitchesContent />;
       break;
     case 'Variables':
-      displayContent = <VariablesContent />;
+      displayContent = content.format?.namedVariables ? <NamedVariablesContent /> : <VariablesContent />;
       break;
     case 'Weapons':
       displayContent = <InventoryContent key="weapons" kind="weapons" label="Weapon" />;
