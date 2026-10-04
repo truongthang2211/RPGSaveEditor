@@ -88,8 +88,11 @@ describe("Ren'Py saves", () => {
     expect(tree.valueOf(again, path(again, 'store', 'inventory', '[0]'))).toBe('golden key');
 
     const names = (bytes: Uint8Array) => readZip(bytes).entries.map((e) => e.name);
-    expect(names(written)).toEqual(['screenshot.png', 'extra_info', 'json', 'renpy_version', 'log', 'signatures']);
-    const untouched = (bytes: Uint8Array) => readZip(bytes).entries.filter((e) => e.name !== 'log').map((e) => e.compressed);
+    // The signature no longer matches the log, and Ren'Py refuses a save with a wrong one: it's dropped.
+    expect(names(fixtureBytes())).toContain('signatures');
+    expect(names(written)).toEqual(['screenshot.png', 'extra_info', 'json', 'renpy_version', 'log']);
+    const untouched = (bytes: Uint8Array) =>
+      readZip(bytes).entries.filter((e) => e.name !== 'log' && e.name !== 'signatures').map((e) => e.compressed);
     expect(untouched(written)).toEqual(untouched(fixtureBytes()));
 
   });

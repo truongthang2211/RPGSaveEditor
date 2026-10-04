@@ -38,14 +38,19 @@ export async function parseRenpySave(bytes: Uint8Array): Promise<RenpySave> {
 }
 
 /**
- * The file to write. Only the "log" entry changes; the screenshot, metadata
- * and signatures are kept as they were (Ren'Py 8.1+ then asks the player once
- * whether to trust the edited save).
+ * The file to write. Only the "log" entry changes, and the screenshot and
+ * metadata are kept.
+ *
+ * The "signatures" entry (Ren'Py 8.1+) is dropped: it signs the old log, and
+ * Ren'Py refuses a save whose signature doesn't match, even after the player
+ * agrees to trust it. Without one, Ren'Py asks the player whether to trust the
+ * save and loads it if they agree; the game signs it again on its next save.
  */
 export async function serializeRenpySave(save: RenpySave): Promise<Uint8Array> {
   if (save.edits.size === 0) return save.original;
-  const log = writePickle(save.pickle, save.edits);
-  const entries = [...save.archive.entries];
-  entries[save.logEntry] = await withData(entries[save.logEntry], log);
+  const log = await withData(save.archive.entries[save.logEntry], writePickle(save.pickle, save.edits));
+  const entries = save.archive.entries
+    .map((entry, i) => (i === save.logEntry ? log : entry))
+    .filter((entry) => entry.name !== 'signatures');
   return writeZip({ ...save.archive, entries });
 }
