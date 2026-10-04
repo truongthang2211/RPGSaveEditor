@@ -109,6 +109,14 @@ describe('RGSS tree', () => {
     expect(path(back, 'dump 2', ':actors', '@data', '[1]', '@result', '@battler').summary).toMatch(/cycle/);
   });
 
+  it('reads and edits Floats in the old "%.16g\\0mantissa" form (RGSS1/2)', () => {
+    const save = fromDumps([array({ kind: 'float', text: '4.0499999999999998\x003' })]);
+    const node = path(save, 'dump 0', '[0]');
+    expect(node).toMatchObject({ type: 'Float', value: 4.05, editable: 'number' });
+    const edited = tree.setValue(save, node, 2.5);
+    expect((materialize(edited)[0] as MArray).items[0]).toEqual({ kind: 'float', text: '2.5' });
+  });
+
   it('refuses to edit read-only values', () => {
     const save = makeSave();
     const result = path(save, 'dump 2', ':actors', '@data', '[1]', '@result');
