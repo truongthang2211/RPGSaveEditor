@@ -1,116 +1,117 @@
-# RPG Save Editor
+# RPG Save Editor – RPG Maker MV, MZ, VX Ace, VX & XP save editor
 
-RPG Save Editor is a desktop application built using Tauri and React, designed for editing save files of RPG games.
+[![Latest release](https://img.shields.io/github/v/release/truongthang2211/RPGSaveEditor)](https://github.com/truongthang2211/RPGSaveEditor/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/truongthang2211/RPGSaveEditor/total)](https://github.com/truongthang2211/RPGSaveEditor/releases)
+[![License](https://img.shields.io/github/license/truongthang2211/RPGSaveEditor)](LICENSE)
 
-## Development
+**RPG Save Editor** is a free, open-source desktop app for editing **RPG Maker save files**: change gold, items,
+weapons, armors, party stats, switches and variables, or any other value in the save. It works offline, keeps your
+save intact, and supports every modern RPG Maker engine:
 
-### Prerequisites
+| Engine | Save files |
+|---|---|
+| RPG Maker MZ | `file1.rmmzsave`, `file2.rmmzsave`, … |
+| RPG Maker MV | `file1.rpgsave`, `file2.rpgsave`, … |
+| RPG Maker VX Ace | `Save01.rvdata2`, … |
+| RPG Maker VX | `Save1.rvdata`, … |
+| RPG Maker XP | `Save1.rxdata`, … |
 
-- [Node.js](https://nodejs.org/) (v16 or newer)
-- System dependencies for Tauri - follow the [Tauri setup guide](https://tauri.app/start/prerequisites/)
+**[⬇ Download the latest version for Windows](https://github.com/truongthang2211/RPGSaveEditor/releases/latest)**
 
-### Setup
+## Screenshots
 
-1. Clone the repository:
-```bash
-git clone https://github.com/truongthang2211/RPGSaveEditor.git
-cd RPGSaveEditor
-```
+![RPG Save Editor main window: editing items in an RPG Maker save](https://github.com/user-attachments/assets/63712b7e-c9c7-4ddc-ad5a-d7c8c5bea7cd)
 
-2. Install dependencies:
-```bash
-npm install
-```
+![RPG Save Editor in dark mode](https://github.com/user-attachments/assets/25e63f51-1f8c-4c62-b61e-0bed689237ef)
 
-### Development Commands
+## Features
 
-- Start development server:
-```bash
-npm run tauri dev
-```
+- **Party**: gold, HP, MP, TP, level, EXP and bonus stats (ATK, DEF, MAT, MDF, AGI, LUK) of every character.
+- **Items, weapons and armors**: change how many of each you own, with names read from the game's database.
+- **Switches and variables**: turn switches on/off and change variables, with their names from the game.
+- **Advanced tab**: browse *every* value in the save as a tree and edit numbers, text and true/false values. Useful
+  for games whose plugins or scripts keep data in their own places.
+- **Powerful search**: exact text, regular expressions, number comparisons (`>1000`, `100..200`) and paths
+  (`party.@gold`, `actors.**.@hp`). See the `?` button in the Advanced tab.
+- **Find unknown values** (like Cheat Engine): open a save, play, open the next save, then search for values that
+  *changed*, *increased* or *decreased*, and refine the results with each new save.
+- **Compare saves**: "Old" and "Gap" columns show how values changed since the previous save of the same game.
+- **Safe for your saves**: XP/VX/VX Ace saves are rewritten losslessly (data from game-specific scripts is kept
+  byte-for-byte), values are kept in the right type, and unsaved changes are never lost by accident.
+- **Reads game data automatically**: item, switch and variable names come from the game's `data`/`Data` folder,
+  including encrypted archives (`Game.rgssad`, `Game.rgss2a`, `Game.rgss3a`).
+- Drag & drop a save onto the window, keyboard shortcuts, light and dark themes, and automatic updates.
 
-- Build for production:
-```bash
-npm run tauri build
-```
+## Download and install
 
-The built application will be available in the `src-tauri/target/release` directory.
+1. Download `rpgsaveeditor_x.y.z_x64-setup.exe` from the
+   [latest release](https://github.com/truongthang2211/RPGSaveEditor/releases/latest).
+2. Run it to install. Windows SmartScreen may warn about an unknown publisher because the app isn't code-signed:
+   click **More info → Run anyway**.
+3. The app checks for updates when it starts (you can turn this off in **About**) and updates itself in one click.
 
-## Support Us
+Requires Windows 10 or 11 (64-bit).
 
-If you find this tool useful, please consider supporting us:
+## How to edit an RPG Maker save
+
+1. **Back up your save file first.**
+2. Open RPG Save Editor and click the file icon (or press <kbd>Ctrl</kbd>+<kbd>O</kbd>, or drag the save onto the
+   window). Saves are usually here, inside the game's folder:
+   - **MZ**: `save/` · **MV**: `www/save/`
+   - **XP, VX, VX Ace**: the game's main folder (next to `Game.exe`)
+3. Edit values in **Party**, **Items**, **Weapons**, **Armors**, **Switches**, **Variables** or **Advanced**.
+   Changed values are highlighted.
+4. Press <kbd>Ctrl</kbd>+<kbd>S</kbd> to save, then load the save in the game.
+   <kbd>Ctrl</kbd>+<kbd>R</kbd> reloads the file from disk.
+
+## Support the project
+
+RPG Save Editor is built in my spare time. If it saved you some grinding, consider buying me a coffee:
 
 [![Buy Me a Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/truongthang2211)
 [![PayPal](https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_111x69.jpg)](https://www.paypal.me/truongthang2211)
 
-## Screenshots
+Bug reports and feature requests are welcome in [Issues](https://github.com/truongthang2211/RPGSaveEditor/issues).
 
-![image](https://github.com/user-attachments/assets/63712b7e-c9c7-4ddc-ad5a-d7c8c5bea7cd)
-*Main interface of RPG Save Editor*
+## Development
 
-![image](https://github.com/user-attachments/assets/25e63f51-1f8c-4c62-b61e-0bed689237ef)
-*Main interface of RPG Save Editor with dark mode enabled.*
+Built with [Tauri 2](https://tauri.app/) (Rust) and [React](https://react.dev/) + TypeScript, styled with
+[styled-components](https://styled-components.com/).
 
-## Features
+### Prerequisites
 
-- Open and edit RPG Maker MV (`.rpgsave`, LZ-String), MZ (`.rmmzsave`, pako/zlib), VX Ace (`SaveNN.rvdata2`), VX (`SaveN.rvdata`) and XP (`SaveN.rxdata`) save files.
-- XP/VX/VX Ace saves (Ruby Marshal) are rewritten losslessly: everything the editor doesn't change, including data from game-specific scripts, is kept byte-for-byte.
-- Modify game data such as party, items, switches, and variables.
-- **Advanced** tab: browse every value in the save as a tree and edit numbers, text and true/false values (useful for games whose scripts store data in their own places). Search supports exact text, regexes, number comparisons (`>1000`, `100..200`), paths (`party.@gold`, `actors.**.@hp`), searching inside one section, and comparing with the previously opened save of the same game (changed / increased / decreased) to track down unknown values, then refining the results with the next save.
-- Supports light and dark modes.
-- Easy-to-use interface with file selection and reload options.
-- Sidebar navigation with sections for Party, Items, Switches, and Variables.
-- About section with information and donation options.
+- [Node.js](https://nodejs.org/) 20.19 or newer (22 LTS recommended)
+- [Rust](https://www.rust-lang.org/tools/install) 1.90 or newer
+- The system dependencies from the [Tauri prerequisites guide](https://tauri.app/start/prerequisites/)
 
-## Technologies Used
+### Commands
 
-- **[Tauri](https://tauri.app/)**: For building the desktop application.
-- **[React](https://reactjs.org/)**: For creating the user interface.
-- **[Styled-components](https://styled-components.com/)**: For styling the application.
-- **[Lodash](https://lodash.com/)**: For utility functions and data manipulation.
+```bash
+git clone https://github.com/truongthang2211/RPGSaveEditor.git
+cd RPGSaveEditor
+npm install
 
-## Usage
+npm run tauri dev     # run the app with hot reload
+npm test              # run the tests
+npm run tauri build   # build the installer (src-tauri/target/release/bundle)
+```
 
-1. Launch the application.
-2. Click on the file icon to open a `.rpgsave` (MV), `.rmmzsave` (MZ), `.rvdata2` (VX Ace), `.rvdata` (VX) or `.rxdata` (XP) save.
-   For XP/VX/VX Ace, item/switch names come from the game's `Data/` folder, or from its encrypted archive (`Game.rgssad`, `Game.rgss2a`, `Game.rgss3a`) when the game is packed.
-3. Edit the desired data using the available sections in the sidebar.
-4. Save your changes or reload the file if needed.
+Save formats live in `src/formats/` (one folder per engine, plus a lossless Ruby Marshal reader/writer in
+`src/formats/marshal/`).
 
-## Download
+### Troubleshooting
 
-You can download the latest release of RPG Save Editor from the [Releases](https://github.com/truongthang2211/RPGSaveEditor/releases) page. The release includes:
+- **Rust errors**: run `rustup update stable`; if the build still fails, run `cargo clean` in `src-tauri/`.
+- **Port 1420 in use**: the dev server needs port 1420; close the other process using it.
 
-- A standalone executable file (`.exe`) for users who already have the necessary dependencies installed.
-- A setup installer (`setup.exe`) for users who may need to install additional dependencies.
+### Contributing
 
-If the standalone `.exe` file does not run on your system, please use the `setup.exe` to install the required software and try again.
+Pull requests are welcome. Please run `npm test` and `npm run build` before opening one, and describe how you tested
+the change (ideally with a real save from the engine you touched).
 
-## Contributing
+## License and disclaimer
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Licensed under the [Apache License 2.0](LICENSE).
 
-## Troubleshooting
-
-### Common Development Issues
-
-1. **Rust toolchain issues**
-   - Make sure you have the latest stable Rust toolchain installed
-   - Run `rustup update` to update your Rust installation
-
-2. **Build errors**
-   - Ensure all dependencies are installed with `npm install`
-   - Check that you have the required system dependencies for Tauri
-   - Clear the build cache: `cargo clean` in the `src-tauri` directory
-
-3. **Development server issues**
-   - Try clearing the npm cache: `npm cache clean --force`
-   - Ensure no other process is using port 1420 (default Vite port)
-
-## License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+RPG Save Editor is an unofficial, fan-made tool. It is not affiliated with or endorsed by the makers of RPG Maker.
+RPG Maker is a trademark of its respective owners.
