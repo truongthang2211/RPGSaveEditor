@@ -5,6 +5,7 @@ import { useContent } from '../context/ContentContext';
 import { findFormat, saveFileFilters, SaveFormat, supportedExtensionsText } from '../formats';
 import { selectFile } from '../utils/fileUtils';
 import { fileNameFromPath } from '../utils/path';
+import { maybeAskForSupport } from '../components/SupportPrompt';
 
 const toastOptions: ToastOptions = {
   position: 'bottom-right',
@@ -129,6 +130,7 @@ export const useSave = () => {
         dirty: prev.saveData !== saveData,
       }));
       successNotify('File Saved!');
+      maybeAskForSupport();
     } catch (error) {
       errorNotify(`Error Saving File! \n${error}`);
     }
