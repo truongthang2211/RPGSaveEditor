@@ -104,7 +104,13 @@ def make_roots():
         "store.mystore.counter": 7,
         "store.history": RevertableList(["line %d" % i for i in range(9000)]),
     }
-    log = Log([Rollback({"store": {"money": 100}}), Rollback({"store": {"player": player}})])
+    # What loading restores: old values of variables and snapshots of objects
+    # changed since the last checkpoint (the rollback log).
+    flags = roots["store.flags"]
+    first = Rollback({"store": {"money": 100}})
+    last = Rollback({"store": {"money": 110, "met_lily": False}})
+    last.objects = [(player, dict(player.__dict__, hp=7)), (flags, [("door_open", False), ("visits", 1)])]
+    log = Log([first, last])
     return roots, log
 
 

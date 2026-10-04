@@ -1,8 +1,10 @@
 import { readBinary, writeBinary } from '../../utils/fileUtils';
 import { PDict, PLeaf, PNode } from '../pickle/model';
-import { createPickleTree } from '../pickle/tree';
-import { SaveEditor, SaveFormat, TreeNode } from '../types';
+import { createPickleTree, Ref, withLeafValue } from '../pickle/tree';
+import { LeafEdit } from '../pickle/writer';
+import { SaveEditor, SaveFormat, SaveTree, TreeNode } from '../types';
 import { isRenpySavePath, RENPY_EXTENSIONS, renpyGameName } from './paths';
+import { recordedMember, recordedVariable, rollbackEntries, sameKindLeaves } from './rollback';
 import { parseRenpySave, RenpySave, renpyParts, serializeRenpySave } from './save';
 
 /**
@@ -12,6 +14,8 @@ import { parseRenpySave, RenpySave, renpyParts, serializeRenpySave } from './sav
  */
 const storeViews = new WeakMap<PNode, PDict>();
 const namespaces = new WeakSet<PNode>();
+/** The roots dict key of each variable's value ("store.money"). */
+const rootKeys = new WeakMap<PNode, string>();
 
 function storeView(roots: PDict): PDict {
   let view = storeViews.get(roots);
@@ -35,12 +39,13 @@ function storeView(roots: PDict): PDict {
       target = next;
     }
     target.entries.push([keyNode(path[path.length - 1]), value]);
+    rootKeys.set(value, key.value);
   }
   storeViews.set(roots, view);
   return view;
 }
 
-const renpyTree = createPickleTree<RenpySave>((root) => {
+const pickleTree = createPickleTree<RenpySave>((root) => {
   const parts = renpyParts(root);
   if (!parts) return [{ key: 'data', node: root, readOnly: true }];
   return [
@@ -50,6 +55,42 @@ const renpyTree = createPickleTree<RenpySave>((root) => {
     { key: 'rollback log', node: parts.log, readOnly: true },
   ];
 });
+
+/** Values recorded in the rollback log for the leaf `node` (see rollback.ts). */
+function recordedCopies(save: RenpySave, node: TreeNode): PLeaf[] {
+  const { node: leaf, ancestors } = node.ref as Ref;
+  const parts = renpyParts(save.pickle.root);
+  if (leaf.kind !== 'leaf' || !parts) return [];
+  const entries = rollbackEntries(parts.log);
+  const parent = ancestors[ancestors.length - 1];
+  const rootKey = parent && namespaces.has(parent) ? rootKeys.get(leaf) : undefined;
+  const recorded = rootKey
+    ? recordedVariable(entries, rootKey)
+    : parent?.kind === 'object'
+      ? recordedMember(entries, parent, leaf)
+      : [];
+  return sameKindLeaves(recorded, leaf);
+}
+
+/** Edits also update the values the rollback log restores on load, so they aren't undone. */
+const renpyTree: SaveTree<RenpySave> = {
+  ...pickleTree,
+  setValue(save, node, value) {
+    const leaf = (node.ref as Ref).node as PLeaf;
+    let edits: ReadonlyMap<number, LeafEdit> = pickleTree.setValue(save, node, value).edits;
+    // Back to the value in the file: the recorded copies go back to theirs too.
+    const backToFile = !edits.has(leaf.site);
+    for (const copy of recordedCopies(save, node)) {
+      if (!backToFile) edits = withLeafValue(edits, copy, value);
+      else if (edits.has(copy.site)) {
+        const next = new Map(edits);
+        next.delete(copy.site);
+        edits = next;
+      }
+    }
+    return { ...save, edits };
+  },
+};
 
 /** Ren'Py's own variables that show up among the game's. */
 const INTERNAL = new Set(['save_name', 'main_menu', 'mouse_visible', 'suppress_overlay', 'default_mouse', 'nvl_list']);

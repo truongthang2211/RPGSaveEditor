@@ -94,6 +94,31 @@ describe("Ren'Py saves", () => {
 
   });
 
+  it('also edits the values the rollback log restores on load', async () => {
+    const save = await parseRenpySave(fixtureBytes());
+    const recorded = (s: RenpySave, ...keys: string[]) => tree.valueOf(s, path(s, 'rollback log', 'log', ...keys));
+    expect(recorded(save, '[1]', 'stores', 'store', 'money')).toBe(110);
+    expect(recorded(save, '[1]', 'objects', '[0]', '[1]', 'hp')).toBe(7);
+    expect(recorded(save, '[1]', 'objects', '[1]', '[1]', '[1]', '[1]')).toBe(1); // flags snapshot: ("visits", 1)
+
+    let edited = tree.setValue(save, variables(save).money, 5000);
+    edited = tree.setValue(edited, path(edited, 'store', 'player', 'hp'), 99);
+    edited = tree.setValue(edited, path(edited, 'store', 'flags', 'visits'), 9);
+    edited = tree.setValue(edited, variables(edited).met_lily, false);
+    const again = await parseRenpySave(await serializeRenpySave(edited));
+    expect(recorded(again, '[0]', 'stores', 'store', 'money')).toBe(5000); // every entry, not just the last
+    expect(recorded(again, '[1]', 'stores', 'store', 'money')).toBe(5000);
+    expect(recorded(again, '[1]', 'stores', 'store', 'met_lily')).toBe(false);
+    expect(recorded(again, '[1]', 'objects', '[0]', '[1]', 'hp')).toBe(99);
+    expect(recorded(again, '[1]', 'objects', '[0]', '[1]', 'name')).toBe('Alex'); // other attributes untouched
+    expect(recorded(again, '[1]', 'objects', '[1]', '[1]', '[1]', '[1]')).toBe(9);
+    expect(recorded(again, '[1]', 'objects', '[1]', '[1]', '[0]', '[1]')).toBe(false); // door_open untouched
+
+    // Setting the value in the file back restores the recorded copies too.
+    const back = tree.setValue(tree.setValue(save, variables(save).money, 5000), variables(save).money, 120);
+    expect(back.edits.size).toBe(0);
+  });
+
   it('refuses values of another type, and setting a value back drops the edit', async () => {
     const save = await parseRenpySave(fixtureBytes());
     const money = variables(save).money;

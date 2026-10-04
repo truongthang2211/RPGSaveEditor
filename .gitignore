@@ -30,3 +30,6 @@ dist-ssr
 
 # Local save files used for testing (never commit)
 save_files/
+
+# Scratch output from local checks (edited saves to try in games, etc.)
+.tmpf/

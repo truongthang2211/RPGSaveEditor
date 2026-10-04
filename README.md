@@ -68,8 +68,9 @@ Requires Windows 10 or 11 (64-bit).
    <kbd>Ctrl</kbd>+<kbd>R</kbd> reloads the file from disk.
 
 Ren'Py 8.1 and newer sign their saves, so when you load an edited save the game asks whether you trust it; answer
-**Yes**. Ren'Py keeps a copy of each save in both folders above and loads the newest, so editing either copy works. Values that
-change during the line the game was saved on may be reset by Ren'Py's rollback, so save on a quiet moment.
+**Yes**. Ren'Py keeps a copy of each save in both folders above and loads the newest, so editing either copy works. Loading rolls
+the game back to the start of the line it was saved on; the editor updates the values Ren'Py restores there too, so
+your edits stay.
 
 ## Support the project
 

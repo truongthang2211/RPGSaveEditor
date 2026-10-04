@@ -16,7 +16,7 @@ export interface TopLevel {
   readOnly?: boolean;
 }
 
-interface Ref {
+export interface Ref {
   node: PNode;
   readOnly: boolean;
   /** Containers on the path to this node, to stop at cycles. */
@@ -158,6 +158,24 @@ function toTreeNode(doc: PickleDoc, parent: TreeNode | null, child: Child, paren
   return { id, key: child.key, type, summary, hasChildren: childrenOf(node).length > 0, identity: node, ref };
 }
 
+/** The edit setting `leaf` to `value`; throws when the value isn't of the leaf's Python type. */
+export function leafEdit(leaf: PLeaf, value: TreeValue): LeafEdit {
+  if (leaf.type === 'int' && typeof value === 'number' && Number.isSafeInteger(value)) return { type: 'int', value };
+  if (leaf.type === 'float' && typeof value === 'number' && Number.isFinite(value)) return { type: 'float', value };
+  if (leaf.type === 'bool' && typeof value === 'boolean') return { type: 'bool', value };
+  if (leaf.type === 'str' && typeof value === 'string') return { type: 'str', value, byteString: leaf.byteString };
+  throw new Error(`Cannot set a Python ${leaf.type} to ${JSON.stringify(value)}`);
+}
+
+/** `edits` with `leaf` set to `value` (no edit kept when it's the value in the file). */
+export function withLeafValue(edits: ReadonlyMap<number, LeafEdit>, leaf: PLeaf, value: TreeValue): Map<number, LeafEdit> {
+  const edit = leafEdit(leaf, value);
+  const next = new Map(edits);
+  if (edit.value === leaf.value) next.delete(leaf.site);
+  else next.set(leaf.site, edit);
+  return next;
+}
+
 /** Advanced-tab access to a pickle; `topLevel` names the rows under the root. */
 export function createPickleTree<S extends PickleDoc>(topLevel: (root: PNode) => TopLevel[]): SaveTree<S> {
   return {
@@ -184,17 +202,7 @@ export function createPickleTree<S extends PickleDoc>(topLevel: (root: PNode) =>
       const ref = node.ref as Ref;
       const leaf = ref.node;
       if (leaf.kind !== 'leaf' || !node.editable) throw new Error(`${node.key} can't be edited`);
-      let edit: LeafEdit;
-      if (leaf.type === 'int' && typeof value === 'number' && Number.isSafeInteger(value)) edit = { type: 'int', value };
-      else if (leaf.type === 'float' && typeof value === 'number' && Number.isFinite(value)) edit = { type: 'float', value };
-      else if (leaf.type === 'bool' && typeof value === 'boolean') edit = { type: 'bool', value };
-      else if (leaf.type === 'str' && typeof value === 'string') edit = { type: 'str', value, byteString: leaf.byteString };
-      else throw new Error(`Cannot set a Python ${leaf.type} to ${JSON.stringify(value)}`);
-
-      const edits = new Map(save.edits);
-      if (edit.value === leaf.value) edits.delete(leaf.site);
-      else edits.set(leaf.site, edit);
-      return { ...save, edits };
+      return { ...save, edits: withLeafValue(save.edits, leaf, value) };
     },
   };
 }
