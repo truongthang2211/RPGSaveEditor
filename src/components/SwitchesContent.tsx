@@ -76,7 +76,7 @@ const SwitchesContent: React.FC = () => {
     { key: 'gap', label: 'GAP', width: '10%', title: GAP_COLUMN_HELP, value: (r) => r.gap },
   ], [onToggle]);
 
-  return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} />;
+  return <DataTable stateKey="switches" rows={rows} columns={columns} rowKey={(r) => r.id} />;
 };
 
 export default SwitchesContent;

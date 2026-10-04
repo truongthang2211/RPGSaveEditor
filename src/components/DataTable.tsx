@@ -1,7 +1,10 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { useRemembered } from '../hooks/useRemembered';
 import styled from 'styled-components';
 import { useInView } from 'react-intersection-observer';
 import {
+  ClearSearchButton,
+  SearchField,
   SearchInput,
   Table,
   TableCell,
@@ -30,6 +33,8 @@ export interface Column<Row> {
 }
 
 interface DataTableProps<Row> {
+  /** Unique per tab: keeps its searches and sorting when switching tabs. */
+  stateKey: string;
   rows: Row[];
   columns: Column<Row>[];
   rowKey: (row: Row) => string | number;
@@ -76,9 +81,10 @@ function compare(a: CellValue, b: CellValue): number {
   return String(a).localeCompare(String(b), undefined, { numeric: true });
 }
 
-function DataTable<Row>({ rows, columns, rowKey, initialSort }: DataTableProps<Row>) {
-  const [queries, setQueries] = useState<Record<string, string>>({});
-  const [sort, setSort] = useState<{ key: string; direction: SortDirection }>(
+function DataTable<Row>({ stateKey, rows, columns, rowKey, initialSort }: DataTableProps<Row>) {
+  const [queries, setQueries] = useRemembered<Record<string, string>>(`${stateKey}.queries`, {});
+  const [sort, setSort] = useRemembered<{ key: string; direction: SortDirection }>(
+    `${stateKey}.sort`,
     initialSort ?? { key: columns[0].key, direction: 'asc' },
   );
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -119,6 +125,7 @@ function DataTable<Row>({ rows, columns, rowKey, initialSort }: DataTableProps<R
           <TableRow>
             {columns.map((column) => {
               const active = sort.key === column.key;
+              const query = queries[column.key] ?? '';
               return (
                 <TableHeaderCell key={column.key} width={column.width} title={column.title}>
                   <HeaderButton
@@ -130,13 +137,30 @@ function DataTable<Row>({ rows, columns, rowKey, initialSort }: DataTableProps<R
                       {active ? (sort.direction === 'asc' ? '▲' : '▼') : '↕'}
                     </SortArrow>
                   </HeaderButton>
-                  <SearchInput
-                    type="text"
-                    placeholder={column.placeholder ?? 'Search'}
-                    aria-label={`Search ${column.label}`}
-                    value={queries[column.key] ?? ''}
-                    onChange={(e) => setQueries((q) => ({ ...q, [column.key]: e.target.value }))}
-                  />
+                  <SearchField>
+                    <SearchInput
+                      type="text"
+                      placeholder={column.placeholder ?? 'Search'}
+                      aria-label={`Search ${column.label}`}
+                      value={query}
+                      $active={query !== ''}
+                      title={query ? `Filtering ${column.label}: "${query}"` : undefined}
+                      onChange={(e) => setQueries((q) => ({ ...q, [column.key]: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') setQueries((q) => ({ ...q, [column.key]: '' }));
+                      }}
+                    />
+                    {query && (
+                      <ClearSearchButton
+                        type="button"
+                        aria-label={`Clear the ${column.label} search`}
+                        title="Clear (Esc)"
+                        onClick={() => setQueries((q) => ({ ...q, [column.key]: '' }))}
+                      >
+                        ✕
+                      </ClearSearchButton>
+                    )}
+                  </SearchField>
                 </TableHeaderCell>
               );
             })}

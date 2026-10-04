@@ -89,7 +89,7 @@ const VariablesContent: React.FC = () => {
     { key: 'gap', label: 'GAP', width: '10%', title: GAP_COLUMN_HELP, value: (r) => r.gap },
   ], [onCommit]);
 
-  return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} />;
+  return <DataTable stateKey="variables" rows={rows} columns={columns} rowKey={(r) => r.id} />;
 };
 
 export default VariablesContent;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import styled, { ThemeProvider } from 'styled-components';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -9,6 +9,7 @@ import './App.css'
 import { ContentProvider } from './context/ContentContext';
 import Hotkeys from './components/Hotkeys';
 import WindowEvents from './components/WindowEvents';
+import ScrollToTop from './components/ScrollToTop';
 import { ToastContainer } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
 
@@ -55,6 +56,7 @@ function initialDarkMode(): boolean {
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(initialDarkMode);
   const [selectedContent, setSelectedContent] = useState<string>('Party');
+  const mainRef = useRef<HTMLDivElement>(null);
 
   const toggleTheme = () => {
     setIsDarkMode(prev => {
@@ -77,8 +79,9 @@ const App: React.FC = () => {
             <SidebarContainer>
               <Sidebar selectedContent={selectedContent} onSelect={setSelectedContent} />
             </SidebarContainer>
-            <MainContentContainer>
+            <MainContentContainer ref={mainRef}>
               <Content page={selectedContent} />
+              <ScrollToTop target={mainRef} />
             </MainContentContainer>
           </AppContainer>
         </Hotkeys>

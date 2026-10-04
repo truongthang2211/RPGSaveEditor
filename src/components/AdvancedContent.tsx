@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { useSaveEditor } from '../hooks/useSaveEditor';
+import { useRemembered } from '../hooks/useRemembered';
 import { TreeNode, TreeValue } from '../formats';
-import { SwitchInput } from '../styles/ItemsContentStyles';
+import { activeSearch, SwitchInput } from '../styles/ItemsContentStyles';
 import ValueInput from './ValueInput';
 import { parseQuery } from './advanced/query';
 import { ChildCache, CompareMode, SearchResult, SearchSpec, TreeRefine, TreeSearch } from './advanced/searchEngine';
@@ -42,7 +43,7 @@ const Toolbar = styled.form`
   align-items: center;
 `;
 
-const SearchBox = styled.input`
+const SearchBox = styled.input<{ $active: boolean }>`
   flex: 1;
   min-width: 260px;
   max-width: 460px;
@@ -51,6 +52,7 @@ const SearchBox = styled.input`
   border: 1px solid ${({ theme }) => theme.borderColor};
   background-color: ${({ theme }) => theme.inputBackground};
   color: ${({ theme }) => theme.inputTextColor};
+  ${({ $active }) => $active && activeSearch}
 `;
 
 const Select = styled.select`
@@ -119,43 +121,110 @@ const Help = styled.div`
   }
 `;
 
-const Status = styled.div`
-  font-size: 12px;
-  opacity: 0.75;
-`;
-
 const ErrorText = styled.div`
   font-size: 13px;
   color: #d9534f;
 `;
 
-const Results = styled.ul`
-  margin: 0;
-  padding: 6px;
-  max-height: 200px;
-  overflow: auto;
-  list-style: none;
+/** A titled box; the search results and the save tree each get one so they read as separate areas. */
+const Panel = styled.section<{ $accent?: boolean }>`
   border: 1px solid ${({ theme }) => theme.borderColor};
-  border-radius: 6px;
+  border-left: 3px solid ${({ theme, $accent }) => ($accent ? theme.primaryColor : theme.borderColor)};
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: ${({ theme }) => theme.contentBackground};
+`;
+
+const PanelHeader = styled.header`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background-color: ${({ theme }) => theme.headerBackground};
+  border-bottom: 1px solid ${({ theme }) => theme.borderColor};
   font-size: 13px;
 `;
 
-const ResultItem = styled.li`
-  padding: 2px 6px;
-  border-radius: 4px;
-  cursor: pointer;
+const PanelTitle = styled.h3`
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
   white-space: nowrap;
+`;
+
+const PanelMeta = styled.span`
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  opacity: 0.75;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const SmallButton = styled.button`
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid ${({ theme }) => theme.borderColor};
+  background-color: ${({ theme }) => theme.itemBackground};
+  color: ${({ theme }) => theme.color};
+  cursor: pointer;
+  white-space: nowrap;
   &:hover {
     background-color: ${({ theme }) => theme.hoverBackground};
   }
 `;
 
+const Results = styled.ul`
+  margin: 0;
+  padding: 4px;
+  max-height: 240px;
+  overflow: auto;
+  list-style: none;
+  font-size: 13px;
+`;
+
+const ResultItem = styled.li<{ $active: boolean }>`
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: ${({ theme, $active }) => ($active ? theme.hoverBackground : 'transparent')};
+  box-shadow: ${({ theme, $active }) => ($active ? `inset 3px 0 0 ${theme.primaryColor}` : 'none')};
+  &:hover {
+    background-color: ${({ theme }) => theme.hoverBackground};
+  }
+`;
+
+const ResultPath = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const ResultParents = styled.span`
+  opacity: 0.6;
+`;
+
+const ResultValue = styled.span`
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: Consolas, Menlo, monospace;
+  text-align: right;
+`;
+
+const OldValue = styled.span`
+  opacity: 0.6;
+  text-decoration: line-through;
+`;
+
 const TreeBox = styled.div`
-  border: 1px solid ${({ theme }) => theme.borderColor};
-  border-radius: 8px;
-  background-color: ${({ theme }) => theme.contentBackground};
   padding: 6px 0;
   font-size: 13px;
 `;
@@ -167,6 +236,7 @@ const Row = styled.div<{ $depth: number; $highlight: boolean }>`
   min-height: 30px;
   padding: 1px 8px 1px ${({ $depth }) => 8 + $depth * 18}px;
   background-color: ${({ theme, $highlight }) => ($highlight ? theme.hoverBackground : 'transparent')};
+  box-shadow: ${({ theme, $highlight }) => ($highlight ? `inset 3px 0 0 ${theme.primaryColor}` : 'none')};
   &:hover {
     background-color: ${({ theme }) => theme.hoverBackground};
   }
@@ -211,6 +281,13 @@ const Type = styled.span`
   white-space: nowrap;
   border: 1px solid ${({ theme }) => theme.borderColor};
   opacity: 0.85;
+`;
+
+const ResultType = styled(Type)`
+  justify-self: start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Muted = styled.span`
@@ -264,27 +341,32 @@ interface SearchState {
   mode: 'search' | 'refine';
   /** Refine: how many results were re-checked. */
   total?: number;
+  /** Stopped (or left by switching tabs) before it finished. */
+  interrupted?: boolean;
 }
+
+/** A search cut off by leaving the tab can't resume; show it as stopped. */
+const restoreSearch = (s: SearchState | null) => (s?.running ? { ...s, running: false, interrupted: true } : s);
 
 const AdvancedContent: React.FC = () => {
   const { tree, save, origin, old, updateSave } = useSaveEditor();
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [pageSizes, setPageSizes] = useState<Record<string, number>>({});
-  const [highlight, setHighlight] = useState<string | null>(null);
+  const [expanded, setExpanded] = useRemembered<Set<string>>('advanced.expanded', new Set());
+  const [pageSizes, setPageSizes] = useRemembered<Record<string, number>>('advanced.pageSizes', {});
+  const [highlight, setHighlight] = useRemembered<string | null>('advanced.highlight', null);
 
-  const [query, setQuery] = useState('');
-  const [compare, setCompare] = useState<CompareMode>('none');
-  const [editableOnly, setEditableOnly] = useState(false);
-  const [scope, setScope] = useState<Pick<SearchResult, 'chain' | 'indices'> | null>(null);
-  const [showHelp, setShowHelp] = useState(false);
+  const [query, setQuery] = useRemembered('advanced.query', '');
+  const [compare, setCompare] = useRemembered<CompareMode>('advanced.compare', 'none');
+  const [editableOnly, setEditableOnly] = useRemembered('advanced.editableOnly', false);
+  const [scope, setScope] = useRemembered<Pick<SearchResult, 'chain' | 'indices'> | null>('advanced.scope', null);
+  const [showHelp, setShowHelp] = useRemembered('advanced.showHelp', false);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState<SearchState | null>(null);
+  const [search, setSearch] = useRemembered<SearchState | null>('advanced.search', null, restoreSearch);
   const runner = useRef<{ job: Job; timer?: number } | null>(null);
 
   const stop = useCallback(() => {
     if (runner.current?.timer) window.clearTimeout(runner.current.timer);
     runner.current = null;
-    setSearch((s) => (s ? { ...s, running: false } : s));
+    setSearch((s) => (s ? { ...s, running: false, interrupted: s.interrupted || s.running } : s));
   }, []);
 
   useEffect(() => stop, [stop]);
@@ -360,6 +442,12 @@ const AdvancedContent: React.FC = () => {
     if (spec) run(new TreeRefine(spec, previous), REFINE_SLICE, 'refine', previous.length);
   };
 
+  const clearSearch = () => {
+    stop();
+    setSearch(null);
+    setHighlight(null);
+  };
+
   const reveal = (result: Pick<SearchResult, 'chain' | 'indices'>) => {
     const ancestors = result.chain.slice(0, -1);
     setExpanded((current) => new Set([...current, ...ancestors.map((n) => n.id)]));
@@ -410,6 +498,7 @@ const AdvancedContent: React.FC = () => {
         <ValueEditor
           value={node.value as string | number}
           mode={node.editable === 'number' ? 'number' : 'text'}
+          integer={node.type === 'Integer'}
           changed={changed}
           label={label}
           onCommit={(value) => setValue(node, value)}
@@ -483,8 +572,7 @@ const AdvancedContent: React.FC = () => {
   return (
     <Wrapper>
       <Notice>
-        Advanced: every value in the save. Editing values you don't understand can break the game — keep a backup.
-        Highlighted values differ from the file as opened.
+        Advanced: every value in the save. Editing values you don't understand can break the game - keep a backup.
       </Notice>
       <Toolbar
         onSubmit={(e) => {
@@ -496,6 +584,7 @@ const AdvancedContent: React.FC = () => {
           placeholder='Search: gold, key:@hp >500, party.@gold, "Lona", /^@stat_/'
           aria-label="Search the save"
           value={query}
+          $active={query.trim() !== ''}
           onChange={(e) => setQuery(e.target.value)}
         />
         <Button type="button" onClick={() => setShowHelp((v) => !v)} aria-expanded={showHelp} title="Search syntax">
@@ -531,9 +620,6 @@ const AdvancedContent: React.FC = () => {
             Stop
           </Button>
         )}
-        <Button type="button" onClick={() => { setExpanded(new Set()); setHighlight(null); }}>
-          Collapse all
-        </Button>
       </Toolbar>
 
       {scope && (
@@ -568,39 +654,71 @@ const AdvancedContent: React.FC = () => {
       {error && <ErrorText role="alert">{error}</ErrorText>}
 
       {search && (
-        <>
-          <Status aria-live="polite">
-            {search.running
-              ? search.mode === 'refine'
-                ? `Refining… ${search.visited} of ${search.total} results checked, ${search.results.length} still match`
-                : `Searching… ${search.visited.toLocaleString()} values checked, ${search.results.length} found`
-              : search.mode === 'refine'
-                ? `${search.results.length} of ${search.total} previous results still match`
-                : `${search.results.length} found in ${search.visited.toLocaleString()} values` +
-                  (search.hitLimit ? ' (stopped at the result limit — narrow the search)' : '')}
-          </Status>
-          <Results aria-label="Search results">
-            {search.results.length === 0 && !search.running && <li>No matches.</li>}
+        <Panel $accent aria-label="Search results">
+          <PanelHeader>
+            <PanelTitle>Search results</PanelTitle>
+            <PanelMeta aria-live="polite">
+              {search.running
+                ? search.mode === 'refine'
+                  ? `Refining… ${search.visited} of ${search.total} results checked, ${search.results.length} still match`
+                  : `Searching… ${search.visited.toLocaleString()} values checked, ${search.results.length} found`
+                : (search.mode === 'refine'
+                  ? `${search.results.length} of ${search.total} previous results still match`
+                  : `${search.results.length} found in ${search.visited.toLocaleString()} values` +
+                    (search.hitLimit ? ' (stopped at the result limit — narrow the search)' : '')) +
+                  (search.interrupted ? ' — stopped before finishing, search again to complete' : '')}
+            </PanelMeta>
+            <SmallButton type="button" onClick={clearSearch} title="Close the results">
+              Clear
+            </SmallButton>
+          </PanelHeader>
+          <Results>
+            {search.results.length === 0 && !search.running && <li style={{ padding: '3px 8px' }}>No matches.</li>}
             {search.results.map((result) => {
               const last = result.chain[result.chain.length - 1];
+              const parents = result.chain.slice(0, -1);
               return (
-                <ResultItem key={last.id} onClick={() => reveal(result)} title={pathText(result.chain)}>
-                  {pathText(result.chain)}
-                  {last.value !== undefined && (
-                    <Muted>
-                      {' = '}
-                      {comparing && result.oldValue !== undefined ? `${formatValue(result.oldValue)} → ` : ''}
-                      {formatValue(last.value)}
-                    </Muted>
-                  )}
+                <ResultItem
+                  key={last.id}
+                  $active={highlight === last.id}
+                  onClick={() => reveal(result)}
+                  title={`${pathText(result.chain)} (${last.type}) — click to show it in the save data`}
+                >
+                  <ResultType>{last.type}</ResultType>
+                  <ResultPath>
+                    {parents.length > 0 && <ResultParents>{pathText(parents)} › </ResultParents>}
+                    <Key>{last.key}</Key>
+                  </ResultPath>
+                  <ResultValue>
+                    {last.value !== undefined && (
+                      <>
+                        {comparing && result.oldValue !== undefined && (
+                          <>
+                            <OldValue>{formatValue(result.oldValue)}</OldValue>
+                            {' → '}
+                          </>
+                        )}
+                        {formatValue(last.value)}
+                      </>
+                    )}
+                  </ResultValue>
                 </ResultItem>
               );
             })}
           </Results>
-        </>
+        </Panel>
       )}
 
-      <TreeBox role="tree">{renderNodes(roots, 0, null)}</TreeBox>
+      <Panel aria-label="Save data">
+        <PanelHeader>
+          <PanelTitle>Save data</PanelTitle>
+          <PanelMeta>Every value in the save · click a search result to jump to it</PanelMeta>
+          <SmallButton type="button" onClick={() => { setExpanded(new Set()); setHighlight(null); }}>
+            Collapse all
+          </SmallButton>
+        </PanelHeader>
+        <TreeBox role="tree">{renderNodes(roots, 0, null)}</TreeBox>
+      </Panel>
     </Wrapper>
   );
 };

@@ -1,5 +1,5 @@
 // ItemsContentStyles.ts
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { BonusInput } from './PartyContentStyles';
 
 // Định nghĩa các style cho các thành phần của bảng
@@ -62,12 +62,48 @@ export const Truncate = styled.span`
 `;
 
 // Định nghĩa các style cho các input
-export const SearchInput = styled(BonusInput)`
+/** A search box that holds a query (so the list below is filtered): accent border and tint. */
+export const activeSearch = css`
+  border-color: ${({ theme }) => theme.primaryColor};
+  background-color: color-mix(in srgb, ${({ theme }) => theme.primaryColor} 18%, ${({ theme }) => theme.inputBackground});
+  box-shadow: 0 0 0 1px ${({ theme }) => theme.primaryColor};
+  font-weight: 600;
+`;
+
+export const SearchInput = styled(BonusInput)<{ $active?: boolean }>`
   width: 100%;
   padding: 6px;
   border: 1px solid ${({ theme }) => theme.borderColor};
   box-sizing: border-box;
   text-align: left;
+  ${({ $active }) => $active && activeSearch}
+  ${({ $active }) => $active && 'padding-right: 22px;'}
+`;
+
+/** Wraps a SearchInput so a clear button can sit inside it. */
+export const SearchField = styled.div`
+  position: relative;
+`;
+
+export const ClearSearchButton = styled.button`
+  all: unset;
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  padding: 0 2px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+  }
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.primaryColor};
+    border-radius: 2px;
+  }
 `;
 
 export const QuantityInput = styled(BonusInput)`
