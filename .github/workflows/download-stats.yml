@@ -1,0 +1,60 @@
+name: Download stats
+
+# GitHub only keeps the running total of each release asset's downloads.
+# Record it once a day, so downloads per day can be worked out later.
+# The data lives in downloads.csv on the "stats" branch, away from main.
+on:
+  schedule:
+    - cron: '0 17 * * *' # 00:00 in Vietnam (UTC+7)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: download-stats
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Check out the stats branch (created on the first run)
+        run: |
+          url="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          if git clone --quiet --depth 1 --branch stats "$url" stats; then
+            exit 0
+          fi
+          git init --quiet stats
+          cd stats
+          git checkout --quiet --orphan stats
+          git remote add origin "$url"
+          cat > README.md <<'EOF'
+          # Download stats
+
+          `downloads.csv` gets one row per release asset each day (00:00 in Vietnam):
+          the asset's total download count at that time, as GitHub reports it.
+          Downloads during a day = that day's total minus the previous day's.
+
+          Written by `.github/workflows/download-stats.yml` on main.
+          EOF
+
+      - name: Append today's totals
+        working-directory: stats
+        run: |
+          [ -f downloads.csv ] || echo 'recorded_at_utc,release,asset,downloads' > downloads.csv
+          now=$(date -u +%Y-%m-%dT%H:%MZ)
+          gh api --paginate "repos/${REPO}/releases" \
+            --jq ".[] | .tag_name as \$tag | .assets[] | [\"$now\", \$tag, .name, .download_count] | @csv" \
+            >> downloads.csv
+          tail -n 5 downloads.csv
+
+      - name: Commit
+        working-directory: stats
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md downloads.csv
+          git commit --quiet -m "Download stats $(date -u +%Y-%m-%d)"
+          git push --quiet origin stats
