@@ -18,7 +18,7 @@ describe('search suggestions', () => {
   it('finds the field being typed at the end of the query', () => {
     expect(fieldAtEnd('key:@he')).toEqual({ field: 'key', partial: '@he', start: 4 });
     expect(fieldAtEnd('gold TYPE:Gam')).toEqual({ field: 'type', partial: 'Gam', start: 10 });
-    expect(fieldAtEnd('key:"rollback lo')).toBeNull(); // inside quotes with a space: not suggested
+    expect(fieldAtEnd('name:"Hi Po')).toEqual({ field: 'name', partial: 'Hi Po', start: 5 }); // quoted, with a space
     expect(fieldAtEnd('key:@hp ')).toBeNull(); // finished
     expect(fieldAtEnd('gold')).toBeNull();
   });
@@ -29,5 +29,6 @@ describe('search suggestions', () => {
     expect(suggestions(['@hp'], '@hp')).toEqual([]); // already typed
     expect(applySuggestion('gold key:@h', 9, '@hp')).toBe('gold key:@hp ');
     expect(applySuggestion('key:roll', 4, 'rollback log')).toBe('key:"rollback log" ');
+    expect(applySuggestion('name:"Hi Po', 5, 'Hi Potion')).toBe('name:"Hi Potion" ');
   });
 });

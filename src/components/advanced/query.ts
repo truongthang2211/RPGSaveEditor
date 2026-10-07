@@ -10,8 +10,9 @@ import { TreeValue } from '../../formats';
  *   >1000  <=0  =99   value comparisons; 100..200 is a range; != excludes
  *   old:120           value in the previous save (compare mode)
  *   party.@gold       path ending in these keys; * = one level, ** = any levels
+ *   name:Potion       database name of an ID (items, weapons, armors, switches, variables)
  */
-export type Field = 'any' | 'key' | 'type' | 'value' | 'old' | 'path';
+export type Field = 'any' | 'key' | 'type' | 'value' | 'old' | 'path' | 'name';
 
 type Matcher =
   | { kind: 'contains'; text: string }
@@ -34,9 +35,11 @@ export interface MatchContext {
   oldValue: TreeValue | undefined;
   /** Keys from the root to this node. */
   path: string[];
+  /** Database name of the ID this node is (item, weapon, armor, switch, variable). */
+  label?: string;
 }
 
-const FIELDS = new Set(['key', 'type', 'value', 'old', 'path']);
+const FIELDS = new Set(['key', 'type', 'value', 'old', 'path', 'name']);
 const NUMBER = /^-?\d+(\.\d+)?$/;
 const RANGE = /^(-?\d+(?:\.\d+)?)\.\.(-?\d+(?:\.\d+)?)$/;
 const COMPARE = /^(>=|<=|!=|>|<|=)(.*)$/;
@@ -179,9 +182,10 @@ export function matches(terms: Term[], ctx: MatchContext): boolean {
       case 'value': return matchValue(matcher, ctx.value);
       case 'old': return matchValue(matcher, ctx.oldValue);
       case 'path': return matcher.kind === 'path' ? matchPath(matcher.segments, ctx.path) : matchText(matcher, ctx.path.join('.'));
+      case 'name': return matchText(matcher, ctx.label);
       case 'any':
         return matchText(matcher, ctx.key) || matchText(matcher, normalizeKey(ctx.key)) ||
-          matchText(matcher, ctx.type) || matchValue(matcher, ctx.value);
+          matchText(matcher, ctx.type) || matchValue(matcher, ctx.value) || matchText(matcher, ctx.label);
     }
   });
 }

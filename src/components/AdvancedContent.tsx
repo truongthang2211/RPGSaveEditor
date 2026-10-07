@@ -8,6 +8,7 @@ import ValueInput from './ValueInput';
 import { parseQuery } from './advanced/query';
 import { applySuggestion, fieldAtEnd, suggestions, Vocabulary, VocabularyCollector } from './advanced/suggest';
 import { EditorCell } from './tableCells';
+import { withNames } from './advanced/names';
 import { readSetting, writeSetting } from '../utils/storage';
 import { ChildCache, CompareMode, SearchResult, SearchSpec, TreeRefine, TreeSearch } from './advanced/searchEngine';
 
@@ -409,6 +410,13 @@ const ScopeButton = styled.button`
   }
 `;
 
+/** Database name next to an ID (item, weapon, armor, switch, variable). */
+const NameLabel = styled.span`
+  font-style: italic;
+  white-space: nowrap;
+  color: ${({ theme }) => theme.primaryColor};
+`;
+
 const Key = styled.span`
   font-family: Consolas, Menlo, monospace;
   font-weight: 600;
@@ -455,7 +463,9 @@ const formatValue = (value: TreeValue | undefined, type?: string) =>
     ? type === 'None' || type === 'nil' ? type : 'null'
     : typeof value === 'string' ? JSON.stringify(value) : String(value);
 
-const pathText = (chain: TreeNode[]) => chain.map((n) => n.key).join(' › ');
+/** A key with its database name, e.g. "3 (Potion)". */
+const keyText = (node: TreeNode) => (node.label ? `${node.key} (${node.label})` : node.key);
+const pathText = (chain: TreeNode[]) => chain.map(keyText).join(' › ');
 
 const COMPARE_LABELS: Record<CompareMode, string> = {
   none: 'No comparison',
@@ -473,6 +483,7 @@ const SYNTAX: [string, string][] = [
   ['>1000  <=0  =99  !=0  100..200', 'compare numbers (range with ..)'],
   ['party.@gold   actors.**.@hp', 'path ending in these keys (* one level, ** any)'],
   ['old:120 =125', 'was 120 in the previous save, is 125 now'],
+  ['Potion   name:"Hi Potion"', 'item, weapon, armor, switch or variable by its name in the game database'],
   ['key:@hp >500', 'combine terms: all must match'],
 ];
 
@@ -520,7 +531,9 @@ const MIN_RESULTS_HEIGHT = 60;
 const MIN_TREE_HEIGHT = 160;
 
 const AdvancedContent: React.FC = () => {
-  const { tree, save, origin, old, updateSave } = useSaveEditor();
+  const { tree: rawTree, save, origin, old, database, updateSave } = useSaveEditor();
+  // IDs labelled with their database names (shown, and found by name).
+  const tree = useMemo(() => (rawTree ? withNames(rawTree, database) : undefined), [rawTree, database]);
   const [expanded, setExpanded] = useRemembered<Set<string>>('advanced.expanded', new Set());
   const [pageSizes, setPageSizes] = useRemembered<Record<string, number>>('advanced.pageSizes', {});
   const [highlight, setHighlight] = useRemembered<string | null>('advanced.highlight', null);
@@ -569,25 +582,27 @@ const AdvancedContent: React.FC = () => {
   };
 
   // Suggestions for key: / type: from the keys and types in the save (collected once per file).
-  const [vocabulary, setVocabulary] = useState<{ source: unknown; words: Vocabulary } | null>(null);
+  const [vocabulary, setVocabulary] = useState<{ source: unknown; tree: unknown; words: Vocabulary } | null>(null);
   const [suggestIndex, setSuggestIndex] = useState(0);
   const [suggestClosed, setSuggestClosed] = useState(false);
   const typing = fieldAtEnd(query);
   const source = origin ?? save;
   useEffect(() => {
-    if (!typing || !tree || !source || vocabulary?.source === source) return;
+    if (!typing || !tree || !source || (vocabulary && vocabulary.source === source && vocabulary.tree === tree)) return;
     const collector = new VocabularyCollector(tree, source);
     let timer = 0;
     const tick = () => {
-      if (collector.step(SEARCH_SLICE)) setVocabulary({ source, words: collector.vocabulary });
+      if (collector.step(SEARCH_SLICE)) setVocabulary({ source, tree, words: collector.vocabulary });
       else timer = window.setTimeout(tick, 0);
     };
     tick();
     return () => window.clearTimeout(timer);
-  }, [typing?.field, tree, source, vocabulary?.source]);
-  const words = vocabulary && vocabulary.source === source ? vocabulary.words : null;
+  }, [typing?.field, tree, source, vocabulary?.source, vocabulary?.tree]);
+  const words = vocabulary && vocabulary.source === source && vocabulary.tree === tree ? vocabulary.words : null;
   const suggested =
-    typing && words && !suggestClosed ? suggestions(typing.field === 'key' ? words.keys : words.types, typing.partial) : [];
+    typing && words && !suggestClosed
+      ? suggestions(typing.field === 'key' ? words.keys : typing.field === 'type' ? words.types : words.names, typing.partial)
+      : [];
   const showSuggestions = !!typing && !suggestClosed && (!words || suggested.length > 0);
   const choose = (word: string) => {
     if (!typing) return;
@@ -800,6 +815,7 @@ const AdvancedContent: React.FC = () => {
                   <Toggle as="span" aria-hidden />
                 )}
                 <Key title={node.id}>{node.key}</Key>
+                {node.label && <NameLabel title="Name in the game database">{node.label}</NameLabel>}
                 <Type>{node.type}</Type>
                 {renderEditor(node)}
                 {node.summary && <Muted>{node.summary}</Muted>}
@@ -888,8 +904,8 @@ const AdvancedContent: React.FC = () => {
             }}
           />
           {showSuggestions && (
-            <SuggestList role="listbox" aria-label={typing?.field === 'key' ? 'Keys in this save' : 'Types in this save'}>
-              {!words && <SuggestNote>Collecting the {typing?.field === 'key' ? 'keys' : 'types'} in this save…</SuggestNote>}
+            <SuggestList role="listbox" aria-label={`${typing?.field === 'name' ? 'Names' : typing?.field === 'key' ? 'Keys' : 'Types'} in this save`}>
+              {!words && <SuggestNote>Collecting the {typing?.field === 'name' ? 'names' : typing?.field === 'key' ? 'keys' : 'types'} in this save…</SuggestNote>}
               {suggested.map((word, i) => (
                 <SuggestItem
                   key={word}
@@ -1037,6 +1053,7 @@ const AdvancedContent: React.FC = () => {
                   <ResultPath>
                     {parents.length > 0 && <ResultParents>{pathText(parents)} › </ResultParents>}
                     <Key>{last.key}</Key>
+                    {last.label && <NameLabel> {last.label}</NameLabel>}
                   </ResultPath>
                   <ResultValue>
                     {last.value !== undefined && (
@@ -1105,7 +1122,7 @@ const AdvancedContent: React.FC = () => {
                     title={`Show ${node.key}`}
                     onClick={() => reveal({ chain: selected.chain.slice(0, i + 1), indices: selected.indices.slice(0, i + 1) })}
                   >
-                    {node.key}
+                    {keyText(node)}
                   </Crumb>
                 </React.Fragment>
               ))}
