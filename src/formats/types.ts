@@ -72,6 +72,8 @@ export interface TreeNode {
   id: string;
   /** Field name, index or hash key as shown to the user. */
   key: string;
+  /** Name of what an ID refers to, from the game's database (e.g. an item ID's item name). */
+  label?: string;
   /** Type label: class name, "Array", "Hash", "Integer", "Float", "String", "Boolean", "nil"... */
   type: string;
   /** Short description for containers and read-only values (e.g. "Array(722)", "Table · 1,240 bytes"). */
