@@ -2,31 +2,33 @@
 import styled, { css } from 'styled-components';
 import { BonusInput } from './PartyContentStyles';
 
-// Định nghĩa các style cho các thành phần của bảng
+// Data tables (DataTable).
 export const TableContainer = styled.div`
   background-color: ${({ theme }) => theme.contentBackground};
   border-radius: 8px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  overflow-x: auto;
+  /* Clips to the rounded corners without becoming a scroll box, so the header can stick. */
+  overflow: clip;
   max-width: 100%;
 `;
 
 export const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  border-radius: 16px;
-  overflow: hidden;
   /* Column widths stay as declared, so a very long name can't push other columns off screen. */
   table-layout: fixed;
 `;
 
 export const TableHeader = styled.thead`
-  background-color: ${({ theme }) => theme.headerBackground};
   color: ${({ theme }) => theme.headerTextColor};
   font-weight: bold;
 `;
 
-export const TableRow = styled.tr`
+const softBorder = css`
+  color-mix(in srgb, ${({ theme }) => theme.borderColor} 55%, transparent)
+`;
+
+export const TableRow = styled.tr<{ $changed?: boolean }>`
   &:nth-child(even) {
     background-color: ${({ theme }) => theme.rowEvenBackground};
   }
@@ -34,19 +36,40 @@ export const TableRow = styled.tr`
   &:nth-child(odd) {
     background-color: ${({ theme }) => theme.rowOddBackground};
   }
+
+  &:hover {
+    background-color: ${({ theme }) => theme.hoverBackground};
+  }
+
+  /* Edited since the file was opened: a marker on the row's left edge. */
+  & > td:first-child {
+    box-shadow: ${({ theme, $changed }) => ($changed ? `inset 3px 0 0 ${theme.changedBorder}` : 'none')};
+  }
 `;
 
-export const TableCell = styled.td`
-  padding: 4px; // Giảm padding để giảm độ cao dòng
-  border-left: 1px solid ${({ theme }) => theme.borderColor};
-  border-right: 1px solid ${({ theme }) => theme.borderColor};
-  text-align: center;
+export const TableCell = styled.td<{ $align?: 'left' | 'center' | 'right' }>`
+  padding: 4px 8px;
+  border-left: 1px solid ${softBorder};
+  border-right: 1px solid ${softBorder};
+  text-align: ${({ $align }) => $align ?? 'center'};
   font-size: 14px;
+  font-variant-numeric: tabular-nums;
+
+  /* Moving down/up with the keyboard keeps the focused editor clear of the sticky header. */
+  input {
+    scroll-margin-top: 90px;
+    scroll-margin-bottom: 16px;
+  }
 `;
 
 export const TableHeaderCell = styled.th<{ width: string }>`
-  padding: 12px 4px 4px 4px;
-  border-bottom: 1px solid ${({ theme }) => theme.borderColor};
+  /* Stays at the top while the page scrolls, with the column searches. */
+  position: sticky;
+  top: -12px; /* the page's top padding */
+  z-index: 2;
+  padding: 12px 6px 6px 6px;
+  background-color: ${({ theme }) => theme.headerBackground};
+  box-shadow: inset 0 -1px 0 ${({ theme }) => theme.borderColor};
   text-align: center;
   font-size: 14px;
   width: ${({ width }) => width};

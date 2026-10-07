@@ -135,6 +135,12 @@ export interface SaveFormat<S = any> {
   editor: SaveEditor<S>;
   /** Raw tree access for the Advanced tab. */
   tree: SaveTree<S>;
+  /**
+   * Whether two versions of a save would write the same data (e.g. every edit
+   * was set back to the value in the file). Without it, any edit counts as a
+   * change until the next save.
+   */
+  sameData?(a: S, b: S): boolean;
   /** Pages that apply to this format (default: all). */
   pages?: readonly EditorPage[];
   /** Variables by name, shown on the Variables page instead of numbered ones. */

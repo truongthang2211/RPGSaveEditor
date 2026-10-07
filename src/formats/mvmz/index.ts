@@ -1,4 +1,5 @@
 import { dirname, join } from '@tauri-apps/api/path';
+import { sameValue } from '../sameValue';
 import { fileExists, readText, writeText } from '../../utils/fileUtils';
 import { GameDatabase, SaveFormat } from '../types';
 import { decodeRpgsave, encodeRpgsave, MvMzSave, preferredCodecForPath, SaveCodec } from './codec';
@@ -67,4 +68,5 @@ export const mvmzFormat: SaveFormat<MvMzSave> = {
   gameName: mvmzGameName,
   editor: mvmzEditor,
   tree: mvmzTree,
+  sameData: sameValue,
 };

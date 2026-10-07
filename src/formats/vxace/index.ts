@@ -1,7 +1,7 @@
 import { readBinary, writeBinary } from '../../utils/fileUtils';
 import { readMarshalStream } from '../marshal/reader';
 import { writeMarshalStream } from '../marshal/writer';
-import { fromDumps, materialize } from '../rgss/patches';
+import { fromDumps, materialize, samePatchedData } from '../rgss/patches';
 import { loadRgssDatabase } from '../rgss/loadDatabase';
 import { isRgssSavePath, rgssGameName } from '../rgss/paths';
 import { SaveFormat } from '../types';
@@ -30,4 +30,5 @@ export const vxaceFormat: SaveFormat<VxAceSave> = {
   gameName: rgssGameName,
   editor: vxaceEditor,
   tree: rgssTree,
+  sameData: samePatchedData,
 };

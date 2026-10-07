@@ -23,6 +23,7 @@ const SHORTCUTS: [string[], string][] = [
   [['Ctrl', 'O'], 'Open a save file'],
   [['Ctrl', 'S'], 'Save changes to the file'],
   [['Ctrl', 'R'], 'Reload the file from disk (discards changes)'],
+  [['Enter'], 'In a table: next row (Shift+Enter: previous); ↑ / ↓ too, except in number boxes'],
 ];
 
 const AboutContainer = styled.div`

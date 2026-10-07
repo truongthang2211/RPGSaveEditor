@@ -1,8 +1,9 @@
 import React, { useCallback, useMemo } from 'react';
 import { SwitchInput } from '../styles/ItemsContentStyles';
-import DataTable, { Column } from './DataTable';
+import DataTable, { Column, QuickFilter } from './DataTable';
+import { EditorCell, gapColumn, matchesBoolean, oldColumn } from './tableCells';
 import { useSaveEditor } from '../hooks/useSaveEditor';
-import { CHANGED_HELP, GAP_COLUMN_HELP, OLD_COLUMN_HELP } from './columnHelp';
+import { CHANGED_HELP } from './columnHelp';
 
 interface Row {
   id: number;
@@ -53,30 +54,58 @@ const SwitchesContent: React.FC = () => {
 
   const columns = useMemo((): Column<Row>[] => [
     { key: 'id', label: 'ID', width: '7%', placeholder: '#', value: (r) => r.id },
-    { key: 'name', label: 'Name', width: '30%', value: (r) => r.name },
+    { key: 'name', label: 'Name', width: '51%', align: 'left', value: (r) => r.name },
     {
       key: 'state',
       label: 'Value',
-      width: '20%',
+      width: '14%',
       title: CHANGED_HELP,
-      placeholder: '0 or 1',
+      placeholder: 'on / off',
       value: (r) => r.state,
-      matches: (r, q) => q === '' || (q === '1' ? r.state : q === '0' ? !r.state : false),
+      matches: (r, q) => matchesBoolean(r.state, q, ['ON', 'OFF']),
       render: (r) => (
-        <SwitchInput
-          type="checkbox"
-          checked={r.state}
-          $changed={r.state !== r.origin}
-          aria-label={`${r.name}`}
-          onChange={() => onToggle(r.id, !r.state)}
-        />
+        <EditorCell
+          label={r.name}
+          original={r.origin ? 'ON' : 'OFF'}
+          onRevert={r.state !== r.origin ? () => onToggle(r.id, r.origin) : undefined}
+        >
+          <SwitchInput
+            type="checkbox"
+            checked={r.state}
+            $changed={r.state !== r.origin}
+            aria-label={`${r.name}`}
+            onChange={() => onToggle(r.id, !r.state)}
+          />
+        </EditorCell>
       ),
     },
-    { key: 'old', label: 'Old Value', width: '10%', title: OLD_COLUMN_HELP, value: (r) => r.old },
-    { key: 'gap', label: 'GAP', width: '10%', title: GAP_COLUMN_HELP, value: (r) => r.gap },
+    oldColumn('Old Value', (r) => r.old, '14%', true),
+    gapColumn((r) => r.gap, '14%', true),
   ], [onToggle]);
 
-  return <DataTable stateKey="switches" rows={rows} columns={columns} rowKey={(r) => r.id} />;
+  const filters = useMemo((): QuickFilter<Row>[] => [
+    { key: 'on', label: 'ON only', test: (r) => r.state },
+    { key: 'changed', label: 'Changed only', title: 'Edited since the file was opened', test: (r) => r.state !== r.origin },
+    {
+      key: 'differs',
+      label: 'Different from old save',
+      title: old ? 'Differs from the previously opened save of this game' : 'Open an earlier save of this game first',
+      test: (r) => r.gap === true,
+      disabled: !old,
+    },
+  ], [old]);
+
+  return (
+    <DataTable
+      stateKey="switches"
+      rows={rows}
+      columns={columns}
+      rowKey={(r) => r.id}
+      filters={filters}
+      itemName="switches"
+      rowChanged={(r) => r.state !== r.origin}
+    />
+  );
 };
 
 export default SwitchesContent;
