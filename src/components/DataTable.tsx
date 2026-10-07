@@ -1,7 +1,6 @@
 import { KeyboardEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import { useRemembered } from '../hooks/useRemembered';
 import styled from 'styled-components';
-import { useInView } from 'react-intersection-observer';
 import {
   ClearSearchButton,
   SearchField,
@@ -62,7 +61,14 @@ interface DataTableProps<Row> {
 
 type SortDirection = 'asc' | 'desc';
 
-const PAGE_SIZE = 500;
+/**
+ * Rows rendered at first, and added each time the last one scrolls into view.
+ * Kept small: rows hold inputs, and rendering hundreds at once (e.g. when a
+ * filter is turned off) made the table stall.
+ */
+const PAGE_SIZE = 100;
+/** The next page is added when this many rows from the end come into view, before the end is reached. */
+const LOAD_AHEAD = 30;
 
 /** Label + sort arrow on one line above the search box; cut with "…" if the column is narrow. */
 const HeaderButton = styled.button<{ $align: CellAlign }>`
@@ -189,11 +195,22 @@ function DataTable<Row>({
     initialSort ?? { key: columns[0].key, direction: 'asc' },
   );
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [trigger, setTrigger] = useState<HTMLTableRowElement | null>(null);
 
-  const { ref, inView } = useInView({ threshold: 0.1, rootMargin: '100px' });
+  // A new observer for each trigger row (LOAD_AHEAD rows from the end): it
+  // reports right away whether that row is in view, so pages keep coming
+  // until the view is filled, and the next page is ready before the end.
   useEffect(() => {
-    if (inView) setVisibleCount((count) => count + PAGE_SIZE);
-  }, [inView]);
+    if (!trigger) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) setVisibleCount((count) => count + PAGE_SIZE);
+    });
+    observer.observe(trigger);
+    return () => observer.disconnect();
+  }, [trigger]);
+
+  // A new search, filter or sort starts from the first page again.
+  useEffect(() => setVisibleCount(PAGE_SIZE), [queries, activeFilters, sort]);
 
   const sortedRows = useMemo(() => {
     const active = columns.filter((column) => queries[column.key]);
@@ -224,6 +241,7 @@ function DataTable<Row>({
     setActiveFilters((current) => (current.includes(key) ? current.filter((k) => k !== key) : [...current, key]));
 
   const visibleRows = sortedRows.slice(0, visibleCount);
+  const triggerIndex = visibleRows.length < sortedRows.length ? Math.max(0, visibleRows.length - LOAD_AHEAD) : -1;
   const narrowed = sortedRows.length !== rows.length;
 
   return (
@@ -312,7 +330,7 @@ function DataTable<Row>({
             {visibleRows.map((row, index) => (
               <TableRow
                 key={rowKey(row)}
-                ref={index === visibleRows.length - 1 ? ref : null}
+                ref={index === triggerIndex ? setTrigger : undefined}
                 $changed={rowChanged?.(row) ?? false}
               >
                 {columns.map((column) => (
