@@ -1,6 +1,6 @@
 import { readBinary, writeBinary } from '../../utils/fileUtils';
 import { PDict, PLeaf, PNode } from '../pickle/model';
-import { createPickleTree, Ref, withLeafValue } from '../pickle/tree';
+import { createPickleTree, keyLabel, Ref, withLeafValue } from '../pickle/tree';
 import { LeafEdit } from '../pickle/writer';
 import { SaveEditor, SaveFormat, SaveTree, TreeNode } from '../types';
 import { isRenpySavePath, RENPY_EXTENSIONS, renpyGameName } from './paths';
@@ -96,6 +96,27 @@ const renpyTree: SaveTree<RenpySave> = {
 const INTERNAL = new Set(['save_name', 'main_menu', 'mouse_visible', 'suppress_overlay', 'default_mouse', 'nvl_list']);
 
 /** Game variables with a simple value (number, text, true/false, None), for the Variables page. */
+const SIMPLE_TYPES = ['int', 'float', 'bool', 'str', 'None'];
+const isSimple = (node: TreeNode) => !node.hasChildren && SIMPLE_TYPES.includes(node.type);
+
+/**
+ * Attribute names of an object of one of the game's own classes (e.g. an
+ * Inventory with `money`), or null for anything else: Ren'Py's own classes
+ * (characters, revertable lists and dicts...) and plain containers.
+ */
+function gameObjectAttributes(node: TreeNode): Set<string> | null {
+  const target = (node.ref as Ref).node;
+  if (target.kind !== 'object' || target.state?.kind !== 'dict') return null;
+  const cls = target.cls;
+  if (cls.kind === 'global' && (cls.module === 'renpy' || cls.module.startsWith('renpy.'))) return null;
+  return new Set(target.state.entries.map(([key]) => keyLabel(key)));
+}
+
+/**
+ * Game variables with a simple value (number, text, true/false, None), for
+ * the Variables page, plus the simple attributes of the game's own objects one
+ * level down (e.g. "mc_inventory.money").
+ */
 function namedVariables(save: RenpySave): { name: string; node: TreeNode }[] {
   const [store] = renpyTree.roots(save);
   if (!store || store.key !== 'store') return [];
@@ -103,9 +124,18 @@ function namedVariables(save: RenpySave): { name: string; node: TreeNode }[] {
   const walk = (parent: TreeNode, prefix: string) => {
     for (const node of renpyTree.children(save, parent)) {
       if (node.key.startsWith('_') || (!prefix && INTERNAL.has(node.key))) continue;
-      if (node.identity && namespaces.has(node.identity as PNode)) walk(node, `${prefix}${node.key}.`);
-      else if (!node.hasChildren && ['int', 'float', 'bool', 'str', 'None'].includes(node.type)) {
+      if (node.identity && namespaces.has(node.identity as PNode)) {
+        walk(node, `${prefix}${node.key}.`);
+      } else if (isSimple(node)) {
         result.push({ name: prefix + node.key, node });
+      } else if (node.hasChildren) {
+        const attributes = gameObjectAttributes(node);
+        if (!attributes) continue;
+        for (const attribute of renpyTree.children(save, node)) {
+          if (attributes.has(attribute.key) && !attribute.key.startsWith('_') && isSimple(attribute)) {
+            result.push({ name: `${prefix}${node.key}.${attribute.key}`, node: attribute });
+          }
+        }
       }
     }
   };

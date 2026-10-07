@@ -43,12 +43,23 @@ describe("Ren'Py saves", () => {
       nickname: 'Alex',
       unicode_name: 'Ånna ✓',
       'mystore.counter': 7,
+      // Simple attributes of the game's own objects, one level down (not Ren'Py's dicts/lists like flags).
+      'player.name': 'Alex',
+      'player.hp': 10,
     });
     const vars = variables(save);
     expect(vars.money).toMatchObject({ type: 'int', editable: 'number', integer: true });
     expect(vars.ratio).toMatchObject({ type: 'float', editable: 'number' });
     expect(vars.huge.editable).toBeUndefined(); // too big for a JS number
     expect(vars.nothing.editable).toBeUndefined();
+    expect(vars['player.hp']).toMatchObject({ type: 'int', editable: 'number' });
+  });
+
+  it('edits an object attribute from the Variables list, including its rollback copy', async () => {
+    const save = await parseRenpySave(fixtureBytes());
+    const again = await parseRenpySave(await serializeRenpySave(tree.setValue(save, variables(save)['player.hp'], 42)));
+    expect(values(again)['player.hp']).toBe(42);
+    expect(tree.valueOf(again, path(again, 'rollback log', 'log', '[1]', 'objects', '[0]', '[1]', 'hp'))).toBe(42);
   });
 
   it('shows containers and objects in the tree, and the rollback log read-only', async () => {
