@@ -308,8 +308,11 @@ const MoreButton = styled(Button)`
   font-size: 12px;
 `;
 
-const formatValue = (value: TreeValue | undefined) =>
-  value === null ? 'nil/null' : typeof value === 'string' ? JSON.stringify(value) : String(value);
+/** `type` names the empty value in the save's own language: nil (Ruby), None (Python), null (JSON). */
+const formatValue = (value: TreeValue | undefined, type?: string) =>
+  value === null
+    ? type === 'None' || type === 'nil' ? type : 'null'
+    : typeof value === 'string' ? JSON.stringify(value) : String(value);
 
 const pathText = (chain: TreeNode[]) => chain.map((n) => n.key).join(' › ');
 
@@ -498,14 +501,14 @@ const AdvancedContent: React.FC = () => {
         <ValueEditor
           value={node.value as string | number}
           mode={node.editable === 'number' ? 'number' : 'text'}
-          integer={node.type === 'Integer'}
+          integer={node.integer}
           changed={changed}
           label={label}
           onCommit={(value) => setValue(node, value)}
         />
       );
     }
-    return node.value !== undefined ? <Muted>{formatValue(node.value)}</Muted> : null;
+    return node.value !== undefined ? <Muted>{formatValue(node.value, node.type)}</Muted> : null;
   };
 
   const renderNodes = (
@@ -694,11 +697,11 @@ const AdvancedContent: React.FC = () => {
                       <>
                         {comparing && result.oldValue !== undefined && (
                           <>
-                            <OldValue>{formatValue(result.oldValue)}</OldValue>
+                            <OldValue>{formatValue(result.oldValue, last.type)}</OldValue>
                             {' → '}
                           </>
                         )}
-                        {formatValue(last.value)}
+                        {formatValue(last.value, last.type)}
                       </>
                     )}
                   </ResultValue>

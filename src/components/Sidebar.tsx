@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import styled from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faBox, faToggleOn, faCogs, faGun, faShieldHalved, faInfoCircle, faSitemap } from '@fortawesome/free-solid-svg-icons';
+import { faUsers, faBox, faToggleOn, faCogs, faGun, faShieldHalved, faInfoCircle, faSitemap, IconDefinition } from '@fortawesome/free-solid-svg-icons';
+import { useContent } from '../context/ContentContext';
+import { EditorPage } from '../formats';
 
 const SidebarItem = styled.div<{ $isSelected: boolean }>`
   display: flex;
@@ -47,59 +49,37 @@ interface SidebarProps {
   selectedContent: string;
 }
 
+const PAGES: { page: EditorPage; icon: IconDefinition }[] = [
+  { page: 'Party', icon: faUsers },
+  { page: 'Items', icon: faBox },
+  { page: 'Weapons', icon: faGun },
+  { page: 'Armors', icon: faShieldHalved },
+  { page: 'Switches', icon: faToggleOn },
+  { page: 'Variables', icon: faCogs },
+  { page: 'Advanced', icon: faSitemap },
+];
+
 const Sidebar: React.FC<SidebarProps> = ({ onSelect, selectedContent }) => {
+  const { content } = useContent();
+  // Formats list the pages that apply to them (e.g. Ren'Py: Variables and Advanced only).
+  const supported = content.format?.pages;
+  const pages = PAGES.filter(({ page }) => !supported || supported.includes(page));
+
+  useEffect(() => {
+    if (supported && selectedContent !== 'About' && !supported.includes(selectedContent as EditorPage)) {
+      onSelect(supported[0]);
+    }
+  }, [supported, selectedContent, onSelect]);
+
   return (
     <SidebarContainer>
       <SidebarContent>
-        <SidebarItem
-          onClick={() => onSelect('Party')}
-          $isSelected={selectedContent === 'Party'}
-        >
-          <Icon icon={faUsers} />
-          Party
-        </SidebarItem>
-        <SidebarItem
-          onClick={() => onSelect('Items')}
-          $isSelected={selectedContent === 'Items'}
-        >
-          <Icon icon={faBox} />
-          Items
-        </SidebarItem>
-        <SidebarItem
-          onClick={() => onSelect('Weapons')}
-          $isSelected={selectedContent === 'Weapons'}
-        >
-          <Icon icon={faGun} />
-          Weapons
-        </SidebarItem>
-        <SidebarItem
-          onClick={() => onSelect('Armors')}
-          $isSelected={selectedContent === 'Armors'}
-        >
-          <Icon icon={faShieldHalved} />
-          Armors
-        </SidebarItem>
-        <SidebarItem
-          onClick={() => onSelect('Switches')}
-          $isSelected={selectedContent === 'Switches'}
-        >
-          <Icon icon={faToggleOn} />
-          Switches
-        </SidebarItem>
-        <SidebarItem
-          onClick={() => onSelect('Variables')}
-          $isSelected={selectedContent === 'Variables'}
-        >
-          <Icon icon={faCogs} />
-          Variables
-        </SidebarItem>
-        <SidebarItem
-          onClick={() => onSelect('Advanced')}
-          $isSelected={selectedContent === 'Advanced'}
-        >
-          <Icon icon={faSitemap} />
-          Advanced
-        </SidebarItem>
+        {pages.map(({ page, icon }) => (
+          <SidebarItem key={page} onClick={() => onSelect(page)} $isSelected={selectedContent === page}>
+            <Icon icon={icon} />
+            {page}
+          </SidebarItem>
+        ))}
       </SidebarContent>
       <AboutSection>
         <SidebarItem
