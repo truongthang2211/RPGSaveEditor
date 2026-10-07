@@ -1,7 +1,7 @@
 import { readBinary, writeBinary } from '../../utils/fileUtils';
 import { readMarshalStream } from '../marshal/reader';
 import { writeMarshalStream } from '../marshal/writer';
-import { fromDumps, materialize } from '../rgss/patches';
+import { fromDumps, materialize, samePatchedData } from '../rgss/patches';
 import { locateByClass, RgssSave } from '../rgss/editor';
 import { loadRgssDatabase } from '../rgss/loadDatabase';
 import { isRgssSavePath, rgssGameName } from '../rgss/paths';
@@ -29,4 +29,5 @@ export const xpFormat: SaveFormat<RgssSave> = {
   gameName: rgssGameName,
   editor: xpEditor,
   tree: rgssTree,
+  sameData: samePatchedData,
 };

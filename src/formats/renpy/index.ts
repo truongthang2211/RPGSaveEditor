@@ -1,4 +1,5 @@
 import { readBinary, writeBinary } from '../../utils/fileUtils';
+import { sameValue } from '../sameValue';
 import { PDict, PLeaf, PNode } from '../pickle/model';
 import { createPickleTree, keyLabel, Ref, withLeafValue } from '../pickle/tree';
 import { LeafEdit } from '../pickle/writer';
@@ -182,5 +183,7 @@ export const renpyFormat: SaveFormat<RenpySave> = {
   gameName: renpyGameName,
   editor: renpyEditor,
   tree: renpyTree,
+  // Edits set back to the value in the file are dropped, so equal edits = same file.
+  sameData: (a, b) => a.pickle === b.pickle && sameValue(a.edits, b.edits),
   namedVariables,
 };

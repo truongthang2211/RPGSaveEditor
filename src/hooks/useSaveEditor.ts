@@ -10,22 +10,28 @@ export const useSaveEditor = () => {
   const { content, setContent } = useContent();
   const editor = content.format?.editor;
 
-  const update = useCallback(
-    (change: (editor: SaveEditor, save: any) => any) => {
-      setContent((prev) =>
-        prev.format && prev.saveData
-          ? { ...prev, saveData: change(prev.format.editor, prev.saveData), dirty: true }
-          : prev,
-      );
+  /** Applies any save -> save change (e.g. the Advanced tree's setValue). */
+  const updateSave = useCallback(
+    (change: (save: any) => any) => {
+      setContent((prev) => {
+        if (!prev.saveData) return prev;
+        const saveData = change(prev.saveData);
+        // Unsaved until the data matches the file again (e.g. every edit undone).
+        const same = prev.format?.sameData && prev.originSaveData && prev.format.sameData(saveData, prev.originSaveData);
+        return { ...prev, saveData, dirty: !same };
+      });
     },
     [setContent],
   );
 
-  /** Applies any save -> save change (e.g. the Advanced tree's setValue). */
-  const updateSave = useCallback(
-    (change: (save: any) => any) => {
-      setContent((prev) => (prev.saveData ? { ...prev, saveData: change(prev.saveData), dirty: true } : prev));
-    },
+  const update = useCallback(
+    (change: (editor: SaveEditor, save: any) => any) =>
+      setContent((prev) => {
+        if (!prev.format || !prev.saveData) return prev;
+        const saveData = change(prev.format.editor, prev.saveData);
+        const same = prev.format.sameData && prev.originSaveData && prev.format.sameData(saveData, prev.originSaveData);
+        return { ...prev, saveData, dirty: !same };
+      }),
     [setContent],
   );
 

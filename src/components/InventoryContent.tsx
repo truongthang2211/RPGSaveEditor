@@ -1,10 +1,11 @@
 import React, { useCallback, useMemo } from 'react';
 import { QuantityInput, Truncate } from '../styles/ItemsContentStyles';
 import Tooltip from './Tooltip';
-import DataTable, { Column } from './DataTable';
+import DataTable, { Column, QuickFilter } from './DataTable';
+import { EditorCell, gapColumn, oldColumn } from './tableCells';
 import { useSaveEditor } from '../hooks/useSaveEditor';
 import { InventoryKind } from '../formats';
-import { CHANGED_HELP, GAP_COLUMN_HELP, OLD_COLUMN_HELP } from './columnHelp';
+import { CHANGED_HELP } from './columnHelp';
 
 interface Row {
   id: number;
@@ -67,7 +68,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({ kind, label }) => {
     {
       key: 'name',
       label: 'Name',
-      width: '30%',
+      width: '43%',
+      align: 'left',
       value: (r) => r.name,
       render: (r, index, visible) => (
         <Tooltip text={r.description} placement={index === visible.length - 1 ? 'top' : 'right'}>
@@ -78,25 +80,53 @@ const InventoryContent: React.FC<InventoryContentProps> = ({ kind, label }) => {
     {
       key: 'quantity',
       label: 'Quantity',
-      width: '20%',
+      width: '18%',
       title: CHANGED_HELP,
       value: (r) => r.quantity,
       render: (r) => (
-        <QuantityInput
-          type="number"
-          min="0"
-          value={r.quantity}
-          $changed={r.quantity !== r.origin}
-          aria-label={`${r.name} quantity`}
-          onChange={(e) => onQuantityChange(r.id, Number(e.target.value))}
-        />
+        <EditorCell
+          label={`${r.name} quantity`}
+          original={String(r.origin)}
+          onRevert={r.quantity !== r.origin ? () => onQuantityChange(r.id, r.origin) : undefined}
+        >
+          <QuantityInput
+            type="number"
+            min="0"
+            value={r.quantity}
+            $changed={r.quantity !== r.origin}
+            aria-label={`${r.name} quantity`}
+            onChange={(e) => onQuantityChange(r.id, Number(e.target.value))}
+          />
+        </EditorCell>
       ),
     },
-    { key: 'old', label: 'Old Qty', width: '10%', title: OLD_COLUMN_HELP, value: (r) => r.old },
-    { key: 'gap', label: 'GAP', width: '10%', title: GAP_COLUMN_HELP, value: (r) => r.gap },
+    oldColumn('Old Qty', (r) => r.old, '16%'),
+    gapColumn((r) => r.gap, '16%'),
   ], [onQuantityChange]);
 
-  return <DataTable stateKey={kind} rows={rows} columns={columns} rowKey={(r) => r.id} />;
+  const filters = useMemo((): QuickFilter<Row>[] => [
+    { key: 'owned', label: 'Owned only', title: 'Quantity above 0', test: (r) => r.quantity > 0 },
+    { key: 'changed', label: 'Changed only', title: 'Edited since the file was opened', test: (r) => r.quantity !== r.origin },
+    {
+      key: 'differs',
+      label: 'Different from old save',
+      title: old ? 'Quantity differs from the previously opened save of this game' : 'Open an earlier save of this game first',
+      test: (r) => r.gap !== null && r.gap !== 0,
+      disabled: !old,
+    },
+  ], [old]);
+
+  return (
+    <DataTable
+      stateKey={kind}
+      rows={rows}
+      columns={columns}
+      rowKey={(r) => r.id}
+      filters={filters}
+      itemName={kind}
+      rowChanged={(r) => r.quantity !== r.origin}
+    />
+  );
 };
 
 export default InventoryContent;

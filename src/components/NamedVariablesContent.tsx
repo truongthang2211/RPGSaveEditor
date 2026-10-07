@@ -2,10 +2,11 @@ import React, { useCallback, useMemo } from 'react';
 import ValueInput from './ValueInput';
 import { SwitchInput } from '../styles/ItemsContentStyles';
 import { getDifferences } from '../utils/textUtils';
-import DataTable, { CellValue, Column, display } from './DataTable';
+import DataTable, { CellValue, Column, display, QuickFilter } from './DataTable';
+import { EditorCell, gapColumn, oldColumn } from './tableCells';
 import { useSaveEditor } from '../hooks/useSaveEditor';
 import { TreeNode, TreeValue } from '../formats';
-import { CHANGED_HELP, GAP_COLUMN_HELP, OLD_COLUMN_HELP } from './columnHelp';
+import { CHANGED_HELP } from './columnHelp';
 
 interface Row {
   name: string;
@@ -62,47 +63,75 @@ const NamedVariablesContent: React.FC = () => {
   );
 
   const columns = useMemo((): Column<Row>[] => [
-    { key: 'name', label: 'Name', width: '30%', value: (r) => r.name },
+    { key: 'name', label: 'Name', width: '38%', align: 'left', value: (r) => r.name },
     { key: 'type', label: 'Type', width: '8%', value: (r) => r.type },
     {
       key: 'value',
       label: 'Value',
-      width: '24%',
+      width: '26%',
       title: CHANGED_HELP,
       value: (r) => asCell(r.value),
       render: (r) => {
         const changed = r.origin !== undefined && r.value !== r.origin;
+        const revert = changed ? () => onCommit(r.node, r.origin as TreeValue) : undefined;
+        const original = r.origin === null ? 'None' : String(r.origin);
         if (r.node.editable === 'boolean') {
           return (
-            <SwitchInput
-              type="checkbox"
-              checked={r.value === true}
-              $changed={changed}
-              aria-label={`${r.name} value`}
-              onChange={() => onCommit(r.node, !r.value)}
-            />
+            <EditorCell label={`${r.name} value`} original={original} onRevert={revert}>
+              <SwitchInput
+                type="checkbox"
+                checked={r.value === true}
+                $changed={changed}
+                aria-label={`${r.name} value`}
+                onChange={() => onCommit(r.node, !r.value)}
+              />
+            </EditorCell>
           );
         }
         if (r.node.editable) {
           return (
-            <ValueInput
-              value={r.value as string | number}
-              mode={r.node.editable === 'number' ? 'number' : 'text'}
-              integer={r.node.integer}
-              changed={changed}
-              label={`${r.name} value`}
-              onCommit={(value) => onCommit(r.node, value)}
-            />
+            <EditorCell label={`${r.name} value`} original={original} onRevert={revert}>
+              <ValueInput
+                value={r.value as string | number}
+                mode={r.node.editable === 'number' ? 'number' : 'text'}
+                integer={r.node.integer}
+                changed={changed}
+                label={`${r.name} value`}
+                onCommit={(value) => onCommit(r.node, value)}
+              />
+            </EditorCell>
           );
         }
         return <span title="Read-only">{r.value === null ? 'None' : String(display(r.value))}</span>;
       },
     },
-    { key: 'old', label: 'Old Value', width: '12%', title: OLD_COLUMN_HELP, value: (r) => r.old },
-    { key: 'gap', label: 'GAP', width: '12%', title: GAP_COLUMN_HELP, value: (r) => r.gap },
+    oldColumn('Old Value', (r) => r.old, '14%'),
+    gapColumn((r) => r.gap, '14%'),
   ], [onCommit]);
 
-  return <DataTable stateKey="named-variables" rows={rows} columns={columns} rowKey={(r) => r.name} />;
+  const changed = (r: Row) => r.origin !== undefined && r.value !== r.origin;
+  const filters = useMemo((): QuickFilter<Row>[] => [
+    { key: 'changed', label: 'Changed only', title: 'Edited since the file was opened', test: changed },
+    {
+      key: 'differs',
+      label: 'Different from old save',
+      title: old ? 'Differs from the previously opened save of this game' : 'Open an earlier save of this game first',
+      test: (r) => r.old !== null && asCell(r.origin) !== r.old,
+      disabled: !old,
+    },
+  ], [old]);
+
+  return (
+    <DataTable
+      stateKey="named-variables"
+      rows={rows}
+      columns={columns}
+      rowKey={(r) => r.name}
+      filters={filters}
+      itemName="variables"
+      rowChanged={changed}
+    />
+  );
 };
 
 export default NamedVariablesContent;

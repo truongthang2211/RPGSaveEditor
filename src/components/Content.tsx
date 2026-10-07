@@ -13,6 +13,8 @@ import { useContent } from '../context/ContentContext';
 
 const ContentContainer = styled.div`
   flex: 1;
+  /* Sized to the window, not to the page's content: lets a page fill the height (Advanced). */
+  min-height: 0;
 `;
 
 interface ContentProps {
