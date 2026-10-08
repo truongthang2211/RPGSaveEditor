@@ -1,6 +1,10 @@
 import React, { ReactNode } from 'react';
-import { HotKeys, KeyMap } from 'react-hotkeys';
+import { configure, HotKeys, KeyMap } from 'react-hotkeys';
 import { useFileUpload, useReload, useSave } from '../hooks/useActions';
+
+// Shortcuts also work while typing in a field: edits are committed as they
+// are typed, so Ctrl+S from an input saves the value being edited.
+configure({ ignoreTags: [] });
 
 const keyMap: KeyMap = {
   UPLOAD_FILE: 'ctrl+o',
