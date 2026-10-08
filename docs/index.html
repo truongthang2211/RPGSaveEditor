@@ -175,6 +175,16 @@
     .steps p { margin: 0; color: var(--text-soft); font-size: 15.5px; }
     .more { margin: 24px 0 0; color: var(--text-soft); }
 
+    .support {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px 48px;
+      padding-bottom: 72px; border-bottom: 1px solid var(--line);
+    }
+    .support h2 { font-size: 26px; letter-spacing: -0.02em; margin-bottom: 10px; }
+    .support p { margin: 0; color: var(--text-soft); max-width: 34em; }
+    .support-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+    .support .coffee { color: #c9851a; }
+    .support .heart { color: #e0567a; }
+
     .policies { display: grid; grid-template-columns: repeat(2, 1fr); gap: 48px; }
     .policies h2 { font-size: 22px; letter-spacing: -0.02em; margin-bottom: 12px; }
     .policies p { margin: 0 0 10px; color: var(--text-soft); font-size: 15.5px; max-width: 36em; }
@@ -374,6 +384,24 @@
     </div>
   </div>
 
+  <section id="support" class="wrap support">
+    <div>
+      <h2>Support the project</h2>
+      <p>RPG Save Editor is free and built in my spare time. If it saved you some grinding, you can buy me a coffee.
+        It helps keep the project going.</p>
+    </div>
+    <div class="support-actions">
+      <a class="btn btn-ghost" href="https://www.buymeacoffee.com/truongthang2211">
+        <svg class="coffee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v2M10 2v2M14 2v2"/></svg>
+        Buy me a coffee
+      </a>
+      <a class="btn btn-ghost" href="https://www.paypal.me/truongthang2211">
+        <svg class="heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
+        Donate with PayPal
+      </a>
+    </div>
+  </section>
+
   <section id="policies" class="wrap policies">
     <div>
       <h2 id="code-signing">Code signing policy</h2>
@@ -403,6 +431,7 @@
       RPG Save Editor is an unofficial, fan-made tool, not affiliated with or endorsed by the makers of RPG Maker or
       Ren'Py.</p>
     <nav>
+      <a href="#support">Donate</a>
       <a href="#code-signing">Code signing</a>
       <a href="#privacy">Privacy</a>
       <a href="https://github.com/truongthang2211/RPGSaveEditor/releases">Releases</a>
