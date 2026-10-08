@@ -17,6 +17,7 @@ const LINKS: [string, string][] = [
   ['Release notes', `${REPO}/releases`],
   ['Report a bug', `${REPO}/issues`],
   ['License (Apache 2.0)', `${REPO}/blob/main/LICENSE`],
+  ['App icon by Icons8', 'https://icons8.com/'],
 ];
 
 const SHORTCUTS: [string[], string][] = [

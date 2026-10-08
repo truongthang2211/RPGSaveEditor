@@ -39,7 +39,7 @@ story switch, or change affection points and flags in a visual novel.
   for games whose plugins or scripts keep data in their own places.
 - **Powerful search**: exact text, regular expressions, number comparisons (`>1000`, `100..200`) and paths
   (`party.@gold`, `actors.**.@hp`). See the `?` button in the Advanced tab.
-- **Find unknown values** (like Cheat Engine): open a save, play, open the next save, then search for values that
+- **Find unknown values** by comparing saves: open a save, play, open the next save, then search for values that
   *changed*, *increased* or *decreased*, and refine the results with each new save.
 - **Compare saves**: "Old" and "Gap" columns show how values changed since the previous save of the same game.
 - **Safe for your saves**: XP/VX/VX Ace and Ren'Py saves are rewritten losslessly (everything you don't edit is kept
@@ -56,7 +56,8 @@ story switch, or change affection points and flags in a visual novel.
    click **More info → Run anyway**.
 3. The app checks for updates when it starts (you can turn this off in **About**) and updates itself in one click.
 
-Requires Windows 10 or 11 (64-bit).
+Requires Windows 10 or 11 (64-bit). To uninstall, open **Settings → Apps → Installed apps**, find **rpgsaveeditor** and
+click **Uninstall**. Your save files are not touched.
 
 ## Where are RPG Maker and Ren'Py save files located?
 
@@ -137,9 +138,32 @@ Save formats live in `src/formats/` (one folder per engine, plus a lossless Ruby
 Pull requests are welcome. Please run `npm test` and `npm run build` before opening one, and describe how you tested
 the change (ideally with a real save from the engine you touched).
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by
+[SignPath Foundation](https://signpath.org/). Releases up to 1.5.0 are not signed.
+
+- Committers and reviewers: [truongthang2211](https://github.com/truongthang2211)
+- Approvers: [truongthang2211](https://github.com/truongthang2211)
+
+Windows installers are built from this repository by the [release workflow](.github/workflows/release.yml) on GitHub
+Actions. Every release is approved by hand before it is signed.
+
+## Privacy policy
+
+RPG Save Editor works offline and does not collect or send any information about you or your saves. Your save files
+and game data are only read and written on your computer.
+
+The only network connection it makes on its own is the update check: when the app starts (and when you click
+**Check for Updates**), it downloads the update information from GitHub Pages (`truongthang2211.github.io`) and, if you
+choose to install an update, the installer from GitHub. GitHub may log these requests like any website visit; see the
+[GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
+You can turn off the automatic check in **About → Check for updates when the app starts**. Links in the app (GitHub,
+donation pages) open in your browser only when you click them.
+
 ## License and disclaimer
 
-Licensed under the [Apache License 2.0](LICENSE).
+Licensed under the [Apache License 2.0](LICENSE). The app icon is by [Icons8](https://icons8.com/).
 
 RPG Save Editor is an unofficial, fan-made tool. It is not affiliated with or endorsed by the makers of RPG Maker.
 RPG Maker is a trademark of its respective owners.
