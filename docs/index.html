@@ -1,11 +1,139 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>RPG Save Editor - Update Server</title>
-    <meta http-equiv="refresh" content="0; url=https://github.com/truongthang2211/RPGSaveEditor">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RPG Save Editor – Free RPG Maker MV, MZ, VX Ace, VX, XP and Ren'Py save editor</title>
+  <meta name="description" content="Free, offline save editor for RPG Maker MV, MZ, VX Ace, VX, XP and Ren'Py games on Windows. Edit gold, items, weapons, armors, stats, switches and variables. Open source.">
+  <link rel="canonical" href="https://truongthang2211.github.io/RPGSaveEditor/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="RPG Save Editor – RPG Maker and Ren'Py save editor">
+  <meta property="og:description" content="Free, offline save editor for RPG Maker MV, MZ, VX Ace, VX, XP and Ren'Py. Edit gold, items, stats, switches and variables.">
+  <meta property="og:url" content="https://truongthang2211.github.io/RPGSaveEditor/">
+  <meta property="og:image" content="https://truongthang2211.github.io/RPGSaveEditor/screenshots/items.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "RPG Save Editor",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Windows 10, Windows 11",
+    "description": "Free, offline save editor for RPG Maker MV, MZ, VX Ace, VX, XP and Ren'Py games. Edit gold, items, weapons, armors, stats, switches and variables.",
+    "url": "https://truongthang2211.github.io/RPGSaveEditor/",
+    "downloadUrl": "https://github.com/truongthang2211/RPGSaveEditor/releases/latest",
+    "screenshot": "https://truongthang2211.github.io/RPGSaveEditor/screenshots/items.png",
+    "license": "https://www.apache.org/licenses/LICENSE-2.0",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <style>
+    :root {
+      --bg: #f7f8fa; --surface: #ffffff; --text: #1d2330; --muted: #5b6475; --border: #e2e6ee;
+      --accent: #2f7de1; --accent-text: #ffffff; --code: #eef1f6;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #16181d; --surface: #1f2228; --text: #e7e9ee; --muted: #a0a7b4; --border: #30343c;
+        --accent: #4a90e2; --accent-text: #ffffff; --code: #2a2e36;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    main { max-width: 960px; margin: 0 auto; padding: 48px 16px 64px; }
+    h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.2; margin: 0 0 12px; }
+    h2 { font-size: 24px; margin: 48px 0 12px; }
+    p { margin: 0 0 12px; }
+    .lead { font-size: 18px; color: var(--muted); max-width: 720px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 8px; }
+    .button {
+      display: inline-block; padding: 12px 20px; border-radius: 8px; font-weight: 600; text-decoration: none;
+      border: 1px solid var(--border); color: var(--text); background: var(--surface);
+    }
+    .button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+    .note { font-size: 14px; color: var(--muted); }
+    img.shot { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--border); margin: 24px 0 0; }
+    table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    code { background: var(--code); padding: 1px 6px; border-radius: 4px; font-size: 14px; overflow-wrap: anywhere; }
+    .table-wrap { overflow-x: auto; }
+    ul.features { padding-left: 20px; }
+    ul.features li { margin-bottom: 6px; }
+    a { color: var(--accent); }
+    footer { margin-top: 56px; font-size: 14px; color: var(--muted); }
+  </style>
 </head>
 <body>
-    <p>Redirecting to <a href="https://github.com/truongthang2211/RPGSaveEditor">RPG Save Editor</a>...</p>
+<main>
+  <h1>RPG Save Editor</h1>
+  <p class="lead">
+    A free, open-source save editor for <strong>RPG Maker MV, MZ, VX Ace, VX, XP</strong> and <strong>Ren'Py</strong>
+    games. Change gold, items, weapons, armors, party stats, switches and variables, or any other value in the save.
+    Unlike online save editors, nothing is uploaded: it runs offline on your Windows PC.
+  </p>
+  <div class="actions">
+    <a class="button primary" href="https://github.com/truongthang2211/RPGSaveEditor/releases/latest">Download for Windows<span id="version"></span></a>
+    <a class="button" href="https://github.com/truongthang2211/RPGSaveEditor">Source code on GitHub</a>
+  </div>
+  <p class="note">Windows 10 or 11 (64-bit) · Free and open source (Apache 2.0) · Updates itself</p>
+
+  <img class="shot" src="screenshots/items.png" width="1200" height="760"
+       alt="RPG Save Editor editing item quantities in an RPG Maker MZ save, with old-save and gap columns">
+
+  <h2>Features</h2>
+  <ul class="features">
+    <li><strong>Party</strong>: gold, HP, MP, TP, level, EXP and bonus stats of every character.</li>
+    <li><strong>Items, weapons and armors</strong> with their names read from the game's database.</li>
+    <li><strong>Switches and variables</strong> by name: unlock story events or change counters.</li>
+    <li><strong>Ren'Py variables</strong>: money, affection points, flags and names, with their type kept.</li>
+    <li><strong>Advanced tab</strong>: every value in the save as a searchable tree, for games whose plugins keep data in their own places.</li>
+    <li><strong>Find unknown values</strong> like Cheat Engine: search for values that changed, increased or decreased between two saves.</li>
+    <li><strong>Safe for your saves</strong>: everything you don't edit is kept as is, and values keep their type.</li>
+    <li>Reads encrypted RPG Maker archives (<code>Game.rgssad</code>, <code>Game.rgss2a</code>, <code>Game.rgss3a</code>), light and dark themes, drag &amp; drop.</li>
+  </ul>
+
+  <img class="shot" src="screenshots/advanced-dark.png" width="1200" height="760" loading="lazy"
+       alt="Advanced tab in dark mode: searching every value in the save by item name">
+
+  <h2>Supported games and save files</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Engine</th><th>Save folder</th><th>Files</th></tr></thead>
+      <tbody>
+        <tr><td>RPG Maker MZ</td><td><code>save/</code></td><td><code>file1.rmmzsave</code></td></tr>
+        <tr><td>RPG Maker MV</td><td><code>www/save/</code></td><td><code>file1.rpgsave</code></td></tr>
+        <tr><td>RPG Maker VX Ace</td><td>game folder, next to <code>Game.exe</code></td><td><code>Save01.rvdata2</code></td></tr>
+        <tr><td>RPG Maker VX</td><td>game folder, next to <code>Game.exe</code></td><td><code>Save1.rvdata</code></td></tr>
+        <tr><td>RPG Maker XP</td><td>game folder, next to <code>Game.exe</code></td><td><code>Save1.rxdata</code></td></tr>
+        <tr><td>Ren'Py 7 and 8</td><td><code>game/saves/</code> and <code>%APPDATA%\RenPy\&lt;game&gt;</code></td><td><code>1-1-LT1.save</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>How to edit a save</h2>
+  <ol>
+    <li>Back up your save file.</li>
+    <li>Open it in RPG Save Editor (<code>Ctrl+O</code>, or drag it onto the window).</li>
+    <li>Change the values you want; changed values are highlighted.</li>
+    <li>Press <code>Ctrl+S</code> and load the save in the game.</li>
+  </ol>
+  <p>Full guide, including Ren'Py notes: <a href="https://github.com/truongthang2211/RPGSaveEditor#readme">README on GitHub</a>.</p>
+
+  <footer>
+    RPG Save Editor is an unofficial, fan-made tool, not affiliated with or endorsed by the makers of RPG Maker or Ren'Py.
+  </footer>
+</main>
+<script>
+  // Show the current version from the update manifest next to the download button.
+  fetch('latest.json')
+    .then((r) => r.json())
+    .then((m) => { if (m.version) document.getElementById('version').textContent = ' · v' + m.version; })
+    .catch(() => {});
+</script>
 </body>
 </html>

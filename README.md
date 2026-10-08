@@ -5,8 +5,9 @@
 [![License](https://img.shields.io/github/license/truongthang2211/RPGSaveEditor)](LICENSE)
 
 **RPG Save Editor** is a free, open-source desktop app for editing **RPG Maker and Ren'Py save files**: change gold,
-items, weapons, armors, party stats, switches and variables, or any other value in the save. It works offline, keeps
-your save intact, and supports every modern RPG Maker engine and Ren'Py visual novels:
+items, weapons, armors, party stats, switches and variables, or any other value in the save. Unlike online save
+editors, nothing is uploaded: it works offline on your PC, keeps your save intact, and supports every modern RPG Maker
+engine and Ren'Py visual novels:
 
 | Engine | Save files |
 |---|---|
@@ -17,13 +18,16 @@ your save intact, and supports every modern RPG Maker engine and Ren'Py visual n
 | RPG Maker XP | `Save1.rxdata`, … |
 | Ren'Py 7 and 8 | `1-1-LT1.save`, `auto-1-LT1.save`, `quick-1-LT1.save`, … |
 
+Common uses: give yourself max gold or money, 99 of every item, max level and stats, skip a grind by turning on a
+story switch, or change affection points and flags in a visual novel.
+
 **[⬇ Download the latest version for Windows](https://github.com/truongthang2211/RPGSaveEditor/releases/latest)**
 
 ## Screenshots
 
-![RPG Save Editor main window: editing items in an RPG Maker save](https://github.com/user-attachments/assets/63712b7e-c9c7-4ddc-ad5a-d7c8c5bea7cd)
+![RPG Save Editor: editing item quantities in an RPG Maker MZ save, with old-save and gap columns](docs/screenshots/items.png)
 
-![RPG Save Editor in dark mode](https://github.com/user-attachments/assets/25e63f51-1f8c-4c62-b61e-0bed689237ef)
+![Advanced tab in dark mode: searching every value in the save by item name](docs/screenshots/advanced-dark.png)
 
 ## Features
 
@@ -54,23 +58,39 @@ your save intact, and supports every modern RPG Maker engine and Ren'Py visual n
 
 Requires Windows 10 or 11 (64-bit).
 
-## How to edit an RPG Maker save
+## Where are RPG Maker and Ren'Py save files located?
+
+| Engine | Save folder | Files |
+|---|---|---|
+| RPG Maker MZ | `save/` in the game's folder | `file1.rmmzsave`, `global.rmmzsave`, … |
+| RPG Maker MV | `www/save/` in the game's folder | `file1.rpgsave`, `global.rpgsave`, … |
+| RPG Maker XP, VX, VX Ace | the game's main folder, next to `Game.exe` | `Save01.rvdata2`, `Save1.rvdata`, `Save1.rxdata` |
+| Ren'Py | `game/saves/` in the game's folder, and `%APPDATA%\RenPy\<game name>` | `1-1-LT1.save`, `auto-1-LT1.save`, … |
+
+Open the slot you saved in: `file3` / `Save03` is the third save slot. `global` and `persistent` files hold settings
+shared by all slots, not your progress.
+
+## How to edit an RPG Maker save (MV, MZ, VX Ace, VX, XP)
 
 1. **Back up your save file first.**
 2. Open RPG Save Editor and click the file icon (or press <kbd>Ctrl</kbd>+<kbd>O</kbd>, or drag the save onto the
-   window). Saves are usually here, inside the game's folder:
-   - **MZ**: `save/` · **MV**: `www/save/`
-   - **XP, VX, VX Ace**: the game's main folder (next to `Game.exe`)
-   - **Ren'Py**: `game/saves/`, or `%APPDATA%\RenPy\<game name>` (Windows)
-3. Edit values in **Party**, **Items**, **Weapons**, **Armors**, **Switches**, **Variables** or **Advanced**.
-   Changed values are highlighted.
+   window).
+3. Edit values in **Party** (gold, HP, level, stats), **Items**, **Weapons**, **Armors**, **Switches**, **Variables**
+   or **Advanced**. Changed values are highlighted.
 4. Press <kbd>Ctrl</kbd>+<kbd>S</kbd> to save, then load the save in the game.
    <kbd>Ctrl</kbd>+<kbd>R</kbd> reloads the file from disk.
 
+## How to edit a Ren'Py save
+
+1. **Back up your save file first.**
+2. Open the `.save` file in RPG Save Editor.
+3. Change variables (money, affection points, flags, names…) in **Variables**, or any other value in **Advanced**.
+4. Press <kbd>Ctrl</kbd>+<kbd>S</kbd> to save, then load the save in the game.
+
 Ren'Py 8.1 and newer sign their saves, so when you load an edited save the game asks whether you trust it; answer
-**Yes**. Ren'Py keeps a copy of each save in both folders above and loads the newest, so editing either copy works. Loading rolls
-the game back to the start of the line it was saved on; the editor updates the values Ren'Py restores there too, so
-your edits stay.
+**Yes**. Ren'Py keeps a copy of each save in both folders above and loads the newest, so editing either copy works.
+Loading rolls the game back to the start of the line it was saved on; the editor updates the values Ren'Py restores
+there too, so your edits stay.
 
 ## Support the project
 
