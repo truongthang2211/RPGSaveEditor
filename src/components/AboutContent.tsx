@@ -13,6 +13,7 @@ import { checkForUpdate, errorMessage, getCheckOnStartup, installUpdate, setChec
 const REPO = 'https://github.com/truongthang2211/RPGSaveEditor';
 
 const LINKS: [string, string][] = [
+  ['Website', 'https://truongthang2211.github.io/RPGSaveEditor/'],
   ['Source code', REPO],
   ['Release notes', `${REPO}/releases`],
   ['Report a bug', `${REPO}/issues`],

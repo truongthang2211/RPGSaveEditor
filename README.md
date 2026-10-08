@@ -22,6 +22,7 @@ Common uses: give yourself max gold or money, 99 of every item, max level and st
 story switch, or change affection points and flags in a visual novel.
 
 **[⬇ Download the latest version for Windows](https://github.com/truongthang2211/RPGSaveEditor/releases/latest)**
+· Website: [truongthang2211.github.io/RPGSaveEditor](https://truongthang2211.github.io/RPGSaveEditor/)
 
 ## Screenshots
 
