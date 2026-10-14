@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { toast, ToastOptions } from 'react-toastify';
 import { confirm } from '@tauri-apps/plugin-dialog';
 import { useContent } from '../context/ContentContext';
-import { findFormat, saveFileFilters, SaveFormat, supportedExtensionsText } from '../formats';
+import { findFormat, notASaveReason, saveFileFilters, SaveFormat, supportedExtensionsText } from '../formats';
 import { selectFile } from '../utils/fileUtils';
 import { fileNameFromPath } from '../utils/path';
 import { maybeAskForSupport } from '../components/SupportPrompt';
@@ -21,6 +21,8 @@ const warningNotify = (text: string) => toast.warn(text, { ...toastOptions, auto
 function formatFor(filePath: string): SaveFormat {
   const format = findFormat(filePath);
   if (!format) {
+    const reason = notASaveReason(filePath);
+    if (reason) throw new Error(reason);
     throw new Error(`Invalid file type! Please upload a ${supportedExtensionsText()} file.`);
   }
   return format;

@@ -129,6 +129,11 @@ export interface SaveFormat<S = any> {
   label: string;
   extensions: readonly string[];
   matches(filePath: string): boolean;
+  /**
+   * Why a file of this game engine is not a save (game data, settings...),
+   * so the user can be told which file to open instead; null otherwise.
+   */
+  notASave?(filePath: string): string | null;
   read(filePath: string): Promise<LoadedSave<S>>;
   write(filePath: string, save: LoadedSave<S>): Promise<void>;
   loadDatabase(saveFilePath: string): Promise<DatabaseResult>;

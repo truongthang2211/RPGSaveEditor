@@ -16,6 +16,15 @@ export function isRgssSavePath(filePath: string, extension: string): boolean {
   return !DATABASE_FILES.includes(baseName) && !/^map\d+$/.test(baseName);
 }
 
+/**
+ * Explains a database or map file (Data/Items.rvdata2, Map001.rxdata...) of
+ * the given extension; `saves` shows how this engine names its saves.
+ */
+export function rgssNotASave(filePath: string, extension: string, saves: string): string | null {
+  if (!hasExtension(filePath, [extension]) || isRgssSavePath(filePath, extension)) return null;
+  return `${pathSegments(filePath).pop()} is part of the game's data, not a save. Saves are usually named ${saves}`;
+}
+
 export function isSaveSubfolder(folderName: string): boolean {
   return SAVE_DIRS.includes(folderName.toLowerCase());
 }

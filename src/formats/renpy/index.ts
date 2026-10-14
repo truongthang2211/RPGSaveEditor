@@ -4,7 +4,7 @@ import { PDict, PLeaf, PNode } from '../pickle/model';
 import { createPickleTree, keyLabel, Ref, withLeafValue } from '../pickle/tree';
 import { LeafEdit } from '../pickle/writer';
 import { SaveEditor, SaveFormat, SaveTree, TreeNode } from '../types';
-import { isRenpySavePath, RENPY_EXTENSIONS, renpyGameName } from './paths';
+import { isRenpySavePath, RENPY_EXTENSIONS, renpyGameName, renpyNotASave } from './paths';
 import { recordedMember, recordedVariable, rollbackEntries, sameKindLeaves } from './rollback';
 import { parseRenpySave, RenpySave, renpyParts, serializeRenpySave } from './save';
 
@@ -168,6 +168,7 @@ export const renpyFormat: SaveFormat<RenpySave> = {
   label: "Ren'Py",
   extensions: RENPY_EXTENSIONS,
   matches: isRenpySavePath,
+  notASave: renpyNotASave,
   pages: ['Variables', 'Advanced'],
 
   async read(filePath) {
