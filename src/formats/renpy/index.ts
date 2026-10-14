@@ -169,6 +169,8 @@ export const renpyFormat: SaveFormat<RenpySave> = {
   extensions: RENPY_EXTENSIONS,
   matches: isRenpySavePath,
   notASave: renpyNotASave,
+  // Ren'Py saves are zip files.
+  sniff: (bytes) => bytes[0] === 0x50 && bytes[1] === 0x4b,
   pages: ['Variables', 'Advanced'],
 
   async read(filePath) {

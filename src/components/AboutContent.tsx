@@ -93,6 +93,15 @@ const FormatList = styled.ul`
   }
 `;
 
+const FormatHint = styled.span`
+  display: block;
+  margin: 2px 0 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.7;
+  max-width: 340px;
+`;
+
 const Links = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -280,11 +289,14 @@ const About: React.FC = () => {
 
       <Card aria-labelledby="about-app">
         <CardTitle id="about-app">About</CardTitle>
-        <p>Edit gold, items, characters, switches, variables and any other value in RPG Maker save files:</p>
+        <p>Edit gold, items, characters, switches, variables and any other value in RPG Maker, Ren'Py and HTML game saves:</p>
         <FormatList aria-label="Supported formats">
           {SAVE_FORMATS.map((format) => (
             <React.Fragment key={format.id}>
-              <li>{format.label}</li>
+              <li>
+                {format.label}
+                {format.hint && <FormatHint>{format.hint}</FormatHint>}
+              </li>
               <li>{format.extensions.map((ext) => `.${ext}`).join(', ')}</li>
             </React.Fragment>
           ))}

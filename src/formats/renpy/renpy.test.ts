@@ -156,7 +156,10 @@ describe("Ren'Py saves", () => {
 
 // Real saves dropped into save_files/ (git-ignored) are checked too.
 const saveDir = join(process.cwd(), 'save_files');
-const realSaves = existsSync(saveDir) ? readdirSync(saveDir).filter((f) => f.toLowerCase().endsWith('.save')) : [];
+const isZip = (file: string) => readFileSync(join(saveDir, file)).subarray(0, 2).toString('latin1') === 'PK';
+const realSaves = existsSync(saveDir)
+  ? readdirSync(saveDir).filter((f) => f.toLowerCase().endsWith('.save') && isZip(f)) // not SugarCube saves
+  : [];
 
 describe.skipIf(realSaves.length === 0)("real Ren'Py saves", () => {
   it.each(realSaves)('%s: reads, edits a number and writes back losslessly', async (file) => {

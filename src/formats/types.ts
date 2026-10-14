@@ -127,6 +127,8 @@ export interface DatabaseResult {
 export interface SaveFormat<S = any> {
   id: string;
   label: string;
+  /** How players recognize these games or get their saves, when the engine name means little to them. */
+  hint?: string;
   extensions: readonly string[];
   matches(filePath: string): boolean;
   /**
@@ -134,6 +136,8 @@ export interface SaveFormat<S = any> {
    * so the user can be told which file to open instead; null otherwise.
    */
   notASave?(filePath: string): string | null;
+  /** Whether the file's content is this format, when several formats share an extension (e.g. .save). */
+  sniff?(bytes: Uint8Array): boolean;
   read(filePath: string): Promise<LoadedSave<S>>;
   write(filePath: string, save: LoadedSave<S>): Promise<void>;
   loadDatabase(saveFilePath: string): Promise<DatabaseResult>;
