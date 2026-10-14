@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isMvMzSavePath, mvmzGameName } from './paths';
+import { isMvMzSavePath, isMvMzSettingsPath, mvmzGameName } from './paths';
 
 describe('isMvMzSavePath', () => {
   it('accepts MV and MZ game saves', () => {
@@ -11,6 +11,13 @@ describe('isMvMzSavePath', () => {
     expect(isMvMzSavePath('/game/save/file1.sav')).toBe(false);
     expect(isMvMzSavePath('C:\\Game\\www\\save\\global.rpgsave')).toBe(false);
     expect(isMvMzSavePath('/game/save/config.rmmzsave')).toBe(false);
+  });
+
+  it('recognizes the global/config files, to explain why they are not opened', () => {
+    expect(isMvMzSettingsPath('C:\\Game\\www\\save\\global.rpgsave')).toBe(true);
+    expect(isMvMzSettingsPath('/game/save/Config.RMMZSAVE')).toBe(true);
+    expect(isMvMzSettingsPath('/game/save/file1.rmmzsave')).toBe(false);
+    expect(isMvMzSettingsPath('/game/save/config.json')).toBe(false);
   });
 });
 

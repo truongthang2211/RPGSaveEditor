@@ -5,6 +5,12 @@ export const RENPY_EXTENSIONS = ['save'] as const;
 /** Ren'Py saves: 1-1-LT1.save, auto-1-LT1.save, quick-1-LT1.save... (any .save; reading checks the content). */
 export const isRenpySavePath = (filePath: string) => hasExtension(filePath, RENPY_EXTENSIONS);
 
+/** Ren'Py's "persistent" file (no extension) next to the saves. */
+export function renpyNotASave(filePath: string): string | null {
+  if (fileNameFromPath(filePath).toLowerCase() !== 'persistent') return null;
+  return "persistent holds data Ren'Py shares between saves, not a save. Open a .save file such as 1-1-LT1.save.";
+}
+
 /**
  * Game name from the save path:
  * <Game>/game/saves/1-1-LT1.save, or the per-user copy

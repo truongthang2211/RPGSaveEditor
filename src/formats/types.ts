@@ -131,6 +131,11 @@ export interface SaveFormat<S = any> {
   hint?: string;
   extensions: readonly string[];
   matches(filePath: string): boolean;
+  /**
+   * Why a file of this game engine is not a save (game data, settings...),
+   * so the user can be told which file to open instead; null otherwise.
+   */
+  notASave?(filePath: string): string | null;
   /** Whether the file's content is this format, when several formats share an extension (e.g. .save). */
   sniff?(bytes: Uint8Array): boolean;
   read(filePath: string): Promise<LoadedSave<S>>;

@@ -4,7 +4,7 @@ import { fileExists, readText, writeText } from '../../utils/fileUtils';
 import { GameDatabase, SaveFormat } from '../types';
 import { decodeRpgsave, encodeRpgsave, MvMzSave, preferredCodecForPath, SaveCodec } from './codec';
 import { mvmzEditor } from './editor';
-import { isMvMzSavePath, MVMZ_EXTENSIONS, mvmzGameName } from './paths';
+import { isMvMzSavePath, MVMZ_EXTENSIONS, mvmzGameName, mvmzNotASave } from './paths';
 import { mvmzTree } from './tree';
 
 /** data/<name>.json next to save/: <Game>/www/data (MV) or <Game>/data (MZ). */
@@ -43,6 +43,7 @@ export const mvmzFormat: SaveFormat<MvMzSave> = {
   label: 'RPG Maker MV/MZ',
   extensions: MVMZ_EXTENSIONS,
   matches: isMvMzSavePath,
+  notASave: mvmzNotASave,
 
   async read(filePath) {
     const { data, codec } = await decodeRpgsave(await readText(filePath), preferredCodecForPath(filePath));

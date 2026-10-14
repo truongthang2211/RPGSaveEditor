@@ -3,7 +3,7 @@ import { readMarshalStream } from '../marshal/reader';
 import { writeMarshalStream } from '../marshal/writer';
 import { fromDumps, materialize, samePatchedData } from '../rgss/patches';
 import { loadRgssDatabase } from '../rgss/loadDatabase';
-import { isRgssSavePath, rgssGameName } from '../rgss/paths';
+import { isRgssSavePath, rgssGameName, rgssNotASave } from '../rgss/paths';
 import { SaveFormat } from '../types';
 import { VxAceSave, vxaceEditor } from './editor';
 import { rgssTree } from '../rgss/tree';
@@ -13,6 +13,7 @@ export const vxaceFormat: SaveFormat<VxAceSave> = {
   label: 'RPG Maker VX Ace',
   extensions: ['rvdata2'],
   matches: (filePath) => isRgssSavePath(filePath, 'rvdata2'),
+  notASave: (filePath) => rgssNotASave(filePath, 'rvdata2', 'Save01.rvdata2, Save02.rvdata2...'),
 
   async read(filePath) {
     const dumps = readMarshalStream(await readBinary(filePath));

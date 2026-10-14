@@ -16,6 +16,15 @@ export function findFormat(filePath: string): SaveFormat | undefined {
   return SAVE_FORMATS.find((format) => format.matches(filePath));
 }
 
+/** Why `filePath` can't be opened when it belongs to a game but isn't a save (see SaveFormat.notASave). */
+export function notASaveReason(filePath: string): string | null {
+  for (const format of SAVE_FORMATS) {
+    const reason = format.notASave?.(filePath);
+    if (reason) return reason;
+  }
+  return null;
+}
+
 /**
  * The format of a save file. When several formats use its extension (.save:
  * Ren'Py and SugarCube), the file's content decides.
