@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { toast, ToastOptions } from 'react-toastify';
 import { confirm } from '@tauri-apps/plugin-dialog';
 import { useContent } from '../context/ContentContext';
-import { findFormat, saveFileFilters, SaveFormat, supportedExtensionsText } from '../formats';
+import { detectFormat, saveFileFilters, SaveFormat, supportedExtensionsText } from '../formats';
 import { selectFile } from '../utils/fileUtils';
 import { fileNameFromPath } from '../utils/path';
 import { maybeAskForSupport } from '../components/SupportPrompt';
@@ -18,8 +18,8 @@ const successNotify = (text: string) => toast.success(text, { ...toastOptions, a
 const errorNotify = (text: string) => toast.error(text, { ...toastOptions, autoClose: 4000 });
 const warningNotify = (text: string) => toast.warn(text, { ...toastOptions, autoClose: 4000 });
 
-function formatFor(filePath: string): SaveFormat {
-  const format = findFormat(filePath);
+async function formatFor(filePath: string): Promise<SaveFormat> {
+  const format = await detectFormat(filePath);
   if (!format) {
     throw new Error(`Invalid file type! Please upload a ${supportedExtensionsText()} file.`);
   }
@@ -53,7 +53,7 @@ export const useOpenPath = () => {
   return useCallback(async (filePath: string, { alreadyConfirmed = false } = {}) => {
     if (!alreadyConfirmed && !(await confirmDiscard(content.dirty, 'Open another file'))) return;
     try {
-      const format = formatFor(filePath);
+      const format = await formatFor(filePath);
       const loaded = await readSave(format, filePath);
       const { database, warnings } = await format.loadDatabase(filePath);
       warnings.forEach(warningNotify);
@@ -102,7 +102,7 @@ export const useReload = () => {
     if (!content.filePath) return;
     if (!(await confirmDiscard(content.dirty, 'Reload'))) return;
     try {
-      const loaded = await readSave(content.format ?? formatFor(content.filePath), content.filePath);
+      const loaded = await readSave(content.format ?? (await formatFor(content.filePath)), content.filePath);
       setContent((prev) => ({
         ...prev,
         ...loaded,

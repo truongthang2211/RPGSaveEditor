@@ -1,0 +1,153 @@
+{
+ "id": "demo-story",
+ "index": 2,
+ "moments": [
+  {
+   "title": "Start",
+   "variables": {
+    "gold": 10,
+    "name": "Alex",
+    "metLily": false,
+    "inventory": [
+     "key",
+     "map",
+     "rope"
+    ],
+    "flags": [
+     "(revive:map)",
+     [
+      [
+       "beach",
+       false
+      ],
+      [
+       "library",
+       true
+      ]
+     ]
+    ],
+    "seen": [
+     "(revive:set)",
+     [
+      "intro"
+     ]
+    ],
+    "started": [
+     "(revive:date)",
+     "2026-01-02T03:04:05.000Z"
+    ],
+    "player": [
+     "(revive:)",
+     [
+      "new Player($ReviveData$)",
+      {
+       "money": 5,
+       "hp": 10
+      }
+     ]
+    ],
+    "stats": {
+     "charm": 3,
+     "fitness": 2
+    }
+   }
+  },
+  {
+   "title": "Beach",
+   "variables": {
+    "gold": 20,
+    "name": "Alex",
+    "metLily": false,
+    "inventory": [
+     "key"
+    ],
+    "flags": [
+     "(revive:map)",
+     [
+      [
+       "beach",
+       true
+      ],
+      [
+       "library",
+       true
+      ]
+     ]
+    ],
+    "seen": [
+     "(revive:set)",
+     [
+      "intro"
+     ]
+    ],
+    "started": [
+     "(revive:date)",
+     "2026-01-02T03:04:05.000Z"
+    ],
+    "player": [
+     "(revive:)",
+     [
+      "new Player($ReviveData$)",
+      {
+       "money": 50,
+       "hp": 10
+      }
+     ]
+    ],
+    "stats": {
+     "charm": 3,
+     "fitness": 2
+    }
+   }
+  },
+  {
+   "title": "Cafe",
+   "variables": {
+    "gold": 35,
+    "name": "Alex",
+    "metLily": true,
+    "inventory": [
+     "key"
+    ],
+    "flags": [
+     "(revive:map)",
+     [
+      [
+       "beach",
+       true
+      ],
+      [
+       "library",
+       true
+      ]
+     ]
+    ],
+    "seen": [
+     "(revive:set)",
+     [
+      "intro"
+     ]
+    ],
+    "started": [
+     "(revive:date)",
+     "2026-01-02T03:04:05.000Z"
+    ],
+    "player": [
+     "(revive:)",
+     [
+      "new Player($ReviveData$)",
+      {
+       "money": 50,
+       "hp": 7
+      }
+     ]
+    ],
+    "stats": {
+     "charm": 4,
+     "fitness": 2
+    },
+    "route": "lily"
+   }
+  }
+ ]
+}
