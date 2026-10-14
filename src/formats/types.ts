@@ -61,6 +61,10 @@ export interface SaveEditor<S = any> {
   /** Variable values by id (numbers, or strings/arrays set by plugins). */
   getVariables(save: S): Record<number, any>;
   setVariable(save: S, id: number, value: any): S;
+  /** Lowest variable ID shown on the Variables page (default 1: RPG Maker never uses 0). */
+  firstVariableId?: number;
+  /** Variables hold whole numbers only (e.g. Wolf RPG Editor). */
+  integerVariables?: boolean;
 }
 
 /** A value shown/edited in the Advanced tree. */
