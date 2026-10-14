@@ -59,7 +59,8 @@ const sugarcubeEditor: SaveEditor<SugarCubeSave> = {
 
 export const sugarcubeFormat: SaveFormat<SugarCubeSave> = {
   id: 'sugarcube',
-  label: 'SugarCube (Twine)',
+  label: 'HTML games (Twine/SugarCube)',
+  hint: 'Games you play in the browser or from an .html file. Export a save with Saves → Save to Disk.',
   extensions: SUGARCUBE_EXTENSIONS,
   matches: (filePath) => hasExtension(filePath, SUGARCUBE_EXTENSIONS),
   sniff: isSugarCubeSave,

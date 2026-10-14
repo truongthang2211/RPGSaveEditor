@@ -1,13 +1,13 @@
-# RPG Save Editor – RPG Maker (MV, MZ, VX Ace, VX, XP), Ren'Py and SugarCube save editor
+# RPG Save Editor – RPG Maker (MV, MZ, VX Ace, VX, XP), Ren'Py and Twine/SugarCube save editor
 
 [![Latest release](https://img.shields.io/github/v/release/truongthang2211/RPGSaveEditor)](https://github.com/truongthang2211/RPGSaveEditor/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/truongthang2211/RPGSaveEditor/total)](https://github.com/truongthang2211/RPGSaveEditor/releases)
 [![License](https://img.shields.io/github/license/truongthang2211/RPGSaveEditor)](LICENSE)
 
-**RPG Save Editor** is a free, open-source desktop app for editing **RPG Maker, Ren'Py and SugarCube (Twine) save
-files**: change gold, items, weapons, armors, party stats, switches and variables, or any other value in the save.
+**RPG Save Editor** is a free, open-source desktop app for editing **RPG Maker, Ren'Py and HTML game (Twine/SugarCube)
+save files**: change gold, items, weapons, armors, party stats, switches and variables, or any other value in the save.
 Unlike online save editors, nothing is uploaded: it works offline on your PC, keeps your save intact, and supports
-every modern RPG Maker engine, Ren'Py visual novels and SugarCube games:
+every modern RPG Maker engine, Ren'Py visual novels and HTML games made with Twine/SugarCube:
 
 | Engine | Save files |
 |---|---|
@@ -17,7 +17,7 @@ every modern RPG Maker engine, Ren'Py visual novels and SugarCube games:
 | RPG Maker VX | `Save1.rvdata`, … |
 | RPG Maker XP | `Save1.rxdata`, … |
 | Ren'Py 7 and 8 | `1-1-LT1.save`, `auto-1-LT1.save`, `quick-1-LT1.save`, … |
-| SugarCube 2 (Twine) | `<game name>-<date>.save`, from the game's **Saves → Save to Disk** |
+| HTML games (Twine/SugarCube 2) | `<game name>-<date>.save`, from the game's **Saves → Save to Disk** |
 
 Common uses: give yourself max gold or money, 99 of every item, max level and stats, skip a grind by turning on a
 story switch, or change affection points and flags in a visual novel.
@@ -37,8 +37,8 @@ story switch, or change affection points and flags in a visual novel.
 - **Items, weapons and armors**: change how many of each you own, with names read from the game's database.
 - **Switches and variables**: turn switches on/off and change variables, with their names from the game.
 - **Ren'Py variables**: every game variable (affection points, flags, money, names…) by name, with its type kept.
-- **SugarCube variables**: every story variable (`$money`, `$player.hp`…) by name, including values stored in
-  objects, Maps and story classes.
+- **HTML game (Twine/SugarCube) variables**: every story variable (`$money`, `$player.hp`…) by name, including
+  values stored in objects, Maps and story classes.
 - **Advanced tab**: browse *every* value in the save as a tree and edit numbers, text and true/false values. Useful
   for games whose plugins or scripts keep data in their own places.
 - **Powerful search**: exact text, regular expressions, number comparisons (`>1000`, `100..200`) and paths
@@ -63,7 +63,7 @@ story switch, or change affection points and flags in a visual novel.
 Requires Windows 10 or 11 (64-bit). To uninstall, open **Settings → Apps → Installed apps**, find **rpgsaveeditor** and
 click **Uninstall**. Your save files are not touched.
 
-## Where are RPG Maker, Ren'Py and SugarCube save files located?
+## Where are RPG Maker, Ren'Py and HTML game save files located?
 
 | Engine | Save folder | Files |
 |---|---|---|
@@ -71,7 +71,7 @@ click **Uninstall**. Your save files are not touched.
 | RPG Maker MV | `www/save/` in the game's folder | `file1.rpgsave`, `global.rpgsave`, … |
 | RPG Maker XP, VX, VX Ace | the game's main folder, next to `Game.exe` | `Save01.rvdata2`, `Save1.rvdata`, `Save1.rxdata` |
 | Ren'Py | `game/saves/` in the game's folder, and `%APPDATA%\RenPy\<game name>` | `1-1-LT1.save`, `auto-1-LT1.save`, … |
-| SugarCube (Twine) | kept inside the browser or game window; export one with **Saves → Save to Disk** (usually to `Downloads`) | `<game name>-<date>.save` |
+| HTML games (Twine/SugarCube) | kept inside the browser or game window; export one with **Saves → Save to Disk** (usually to `Downloads`) | `<game name>-<date>.save` |
 
 Open the slot you saved in: `file3` / `Save03` is the third save slot. `global` and `persistent` files hold settings
 shared by all slots, not your progress.
@@ -98,7 +98,11 @@ Ren'Py 8.1 and newer sign their saves, so when you load an edited save the game 
 Loading rolls the game back to the start of the line it was saved on; the editor updates the values Ren'Py restores
 there too, so your edits stay.
 
-## How to edit a SugarCube (Twine) save
+## How to edit an HTML game save (Twine/SugarCube)
+
+Many text-based story games are made with Twine and its SugarCube story format. You play them in a web
+browser or by opening an `.html` file (sometimes wrapped in an `.exe`), and their menu has a **Saves** button with
+**Save to Disk** and **Load from Disk**.
 
 1. In the game, open **Saves** and click **Save to Disk**. This downloads a `.save` file (a backup too).
 2. Open that file in RPG Save Editor.
