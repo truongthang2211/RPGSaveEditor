@@ -13,7 +13,7 @@ import { TreeNode } from '../../formats';
 
 const mvSave = () => ({
   party: { '@': 'Game_Party', _gold: 1500, _items: { 1: 3, 2: 99 } },
-  actors: { _data: { '@a': [null, { _name: 'Reid', _hp: 400, _level: 5 }, { _name: 'Lona', _hp: 90, _level: 2 }] } },
+  actors: { _data: { '@a': [null, { _name: 'Reid', _hp: 400, _level: 5 }, { _name: 'Hero', _hp: 90, _level: 2 }] } },
   variables: { _data: { '@a': [null, 7, 120, 'text'] } },
 });
 
@@ -31,7 +31,7 @@ describe('tree search', () => {
   it('finds matches anywhere, with their full path', () => {
     expect(keysOf(searchAll(spec({ query: '_hp' })))).toEqual(['actors._data.@a.[1]._hp', 'actors._data.@a.[2]._hp']);
     expect(keysOf(searchAll(spec({ query: 'key:_hp >100' })))).toEqual(['actors._data.@a.[1]._hp']);
-    expect(keysOf(searchAll(spec({ query: '"Lona"' })))).toEqual(['actors._data.@a.[2]._name']);
+    expect(keysOf(searchAll(spec({ query: '"Hero"' })))).toEqual(['actors._data.@a.[2]._name']);
     expect(keysOf(searchAll(spec({ query: 'party.*' })))).toEqual(['party.@', 'party._gold', 'party._items']); // "@" holds the JsonEx class name
   });
 
