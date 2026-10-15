@@ -69,7 +69,7 @@ story switch, or change affection points and flags in a visual novel.
 Requires Windows 10 or 11 (64-bit). To uninstall, open **Settings → Apps → Installed apps**, find **rpgsaveeditor** and
 click **Uninstall**. Your save files are not touched.
 
-## Where are RPG Maker, Ren'Py, HTML game and Wolf RPG save files located?
+## Where are the save files located?
 
 | Engine | Save folder | Files |
 |---|---|---|
@@ -79,6 +79,7 @@ click **Uninstall**. Your save files are not touched.
 | Ren'Py | `game/saves/` in the game's folder, and `%APPDATA%\RenPy\<game name>` | `1-1-LT1.save`, `auto-1-LT1.save`, … |
 | HTML games (Twine/SugarCube) | kept inside the browser or game window; export one with **Saves → Save to Disk** (usually to `Downloads`) | `<game name>-<date>.save` |
 | Wolf RPG Editor | `Save/` in the game's folder | `SaveData01.sav`, `SaveData02.sav`, … |
+| JSON saves | the game's folder or `%APPDATA%`, or exported by the game's Save button | `save.json`, `slot1.json`, … |
 
 Open the slot you saved in: `file3` / `Save03` is the third save slot. `global` and `persistent` files hold settings
 shared by all slots, not your progress.
