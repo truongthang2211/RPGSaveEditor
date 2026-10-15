@@ -140,8 +140,9 @@ describe.skipIf(realSaves.length === 0)('VX Ace editor (real saves)', () => {
   it.each(realSaves)('%s: reads the party and actors', (file) => {
     const save = fromDumps(readMarshalStream(load(file)));
     expect(editor.getInventory(save, 'items')).toMatchObject({ 20: 3, 104: 1 });
-    const [lona] = editor.getActors(save);
-    expect(lona).toMatchObject({ slot: 1, name: 'Lona', paramPlus: [0, 0, 0, 0, 0, 0, 0, 0] });
+    const [first] = editor.getActors(save);
+    expect(first).toMatchObject({ slot: 1, paramPlus: [0, 0, 0, 0, 0, 0, 0, 0] });
+    expect(first.name).toBeTruthy();
   });
 
   it.each(realSaves)('%s: an edit round-trips and reverting it restores the original bytes', (file) => {

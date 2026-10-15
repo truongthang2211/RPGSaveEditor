@@ -477,7 +477,7 @@ const COMPARE_LABELS: Record<CompareMode, string> = {
 
 const SYNTAX: [string, string][] = [
   ['gold', 'key, type or value contains "gold"'],
-  ['"Lona"', 'key or value is exactly Lona'],
+  ['"Hero"', 'key or value is exactly Hero'],
   ['/^@stat_/', 'regular expression'],
   ['key:@hp  type:Game_Party  value:99', 'look only at the key, type or value'],
   ['>1000  <=0  =99  !=0  100..200', 'compare numbers (range with ..)'],
@@ -876,7 +876,7 @@ const AdvancedContent: React.FC = () => {
       >
         <SearchWrap>
           <SearchBox
-            placeholder='Search: gold, key:@hp >500, party.@gold, "Lona", /^@stat_/'
+            placeholder='Search: gold, key:@hp >500, party.@gold, "Hero", /^@stat_/'
             aria-label="Search the save"
             aria-autocomplete="list"
             aria-expanded={showSuggestions}
