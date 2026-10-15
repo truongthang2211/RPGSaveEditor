@@ -18,6 +18,7 @@ every modern RPG Maker engine, Ren'Py visual novels and HTML games made with Twi
 | RPG Maker XP | `Save1.rxdata`, … |
 | Ren'Py 7 and 8 | `1-1-LT1.save`, `auto-1-LT1.save`, `quick-1-LT1.save`, … |
 | HTML games (Twine/SugarCube 2) | `<game name>-<date>.save`, from the game's **Saves → Save to Disk** |
+| JSON saves | `save.json`, `slot1.json`… from games written in JavaScript |
 
 Common uses: give yourself max gold or money, 99 of every item, max level and stats, skip a grind by turning on a
 story switch, or change affection points and flags in a visual novel.
@@ -37,6 +38,8 @@ story switch, or change affection points and flags in a visual novel.
 - **Items, weapons and armors**: change how many of each you own, with names read from the game's database.
 - **Switches and variables**: turn switches on/off and change variables, with their names from the game.
 - **Ren'Py variables**: every game variable (affection points, flags, money, names…) by name, with its type kept.
+- **JSON saves**: any plain `.json` save, with its top-level values on the Variables page by name and the whole
+  file in Advanced. The file keeps its indentation and layout.
 - **HTML game (Twine/SugarCube) variables**: every story variable (`$money`, `$player.hp`…) by name, including
   values stored in objects, Maps and story classes.
 - **Advanced tab**: browse *every* value in the save as a tree and edit numbers, text and true/false values. Useful
@@ -111,6 +114,20 @@ browser or by opening an `.html` file (sometimes wrapped in an `.exe`), and thei
 
 The edits apply to the passage the save was made on. Going back in the game's history shows the earlier, unedited
 values.
+
+## How to edit a JSON save
+
+Some games written in JavaScript (run in the browser, or packed as an `.exe` with NW.js or Electron) keep their save
+as a plain `.json` file, usually in the game's folder or in `%APPDATA%`, or exported from a Save button.
+
+1. **Back up the file first.**
+2. Open the `.json` file in RPG Save Editor.
+3. Change the values on **Variables** (top-level values such as `day` or `money`, and the fields of the objects under
+   them), or anything else in **Advanced**.
+4. Press <kbd>Ctrl</kbd>+<kbd>S</kbd> and load the save in the game.
+
+Only the values you change are written; indentation and layout stay as they were. A number too large to keep exactly
+(over 15 digits) stops the file from opening rather than being rounded.
 
 ## Support the project
 
