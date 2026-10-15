@@ -56,11 +56,14 @@ const VariablesContent: React.FC = () => {
     if (names?.length) {
       return names.flatMap((name, id) => (id > 0 && name ? [row(id, name)] : []));
     }
+    const first = editor.firstVariableId ?? 1;
     return Object.keys(current)
       .map(Number)
-      .filter((id) => id > 0)
+      .filter((id) => id >= first)
       .map((id) => row(id, `Variable#${id}`));
   }, [editor, save, origin, old, database]);
+
+  const integer = editor?.integerVariables;
 
   const onCommit = useCallback(
     (id: number, value: number | string) => update((ed, s) => ed.setVariable(s, id, value)),
@@ -90,6 +93,7 @@ const VariablesContent: React.FC = () => {
             <ValueInput
               value={r.value === null || typeof r.value === 'boolean' ? String(r.value ?? 0) : r.value}
               mode={typeof r.value === 'string' ? 'text' : 'number'}
+              integer={integer}
               changed={changed}
               label={`${r.name} value`}
               onCommit={(value) => onCommit(r.id, value)}
@@ -100,7 +104,7 @@ const VariablesContent: React.FC = () => {
     },
     oldColumn('Old Value', (r) => r.old, '14%'),
     gapColumn((r) => r.gap, '14%'),
-  ], [onCommit]);
+  ], [onCommit, integer]);
 
   const filters = useMemo((): QuickFilter<Row>[] => [
     { key: 'set', label: 'Non-zero only', title: 'Hide variables that are 0 or empty', test: (r) => asCell(r.value) !== 0 && r.value !== '' },

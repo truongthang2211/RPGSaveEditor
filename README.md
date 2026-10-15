@@ -1,13 +1,13 @@
-# RPG Save Editor – RPG Maker (MV, MZ, VX Ace, VX, XP), Ren'Py and Twine/SugarCube save editor
+# RPG Save Editor – RPG Maker (MV, MZ, VX Ace, VX, XP), Ren'Py, Twine/SugarCube and Wolf RPG Editor save editor
 
 [![Latest release](https://img.shields.io/github/v/release/truongthang2211/RPGSaveEditor)](https://github.com/truongthang2211/RPGSaveEditor/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/truongthang2211/RPGSaveEditor/total)](https://github.com/truongthang2211/RPGSaveEditor/releases)
 [![License](https://img.shields.io/github/license/truongthang2211/RPGSaveEditor)](LICENSE)
 
-**RPG Save Editor** is a free, open-source desktop app for editing **RPG Maker, Ren'Py and HTML game (Twine/SugarCube)
-save files**: change gold, items, weapons, armors, party stats, switches and variables, or any other value in the save.
+**RPG Save Editor** is a free, open-source desktop app for editing **RPG Maker, Ren'Py, HTML game (Twine/SugarCube) and
+Wolf RPG Editor save files**: change gold, items, weapons, armors, party stats, switches and variables, or any other value in the save.
 Unlike online save editors, nothing is uploaded: it works offline on your PC, keeps your save intact, and supports
-every modern RPG Maker engine, Ren'Py visual novels and HTML games made with Twine/SugarCube:
+every modern RPG Maker engine, Ren'Py visual novels, HTML games made with Twine/SugarCube and Wolf RPG Editor games:
 
 | Engine | Save files |
 |---|---|
@@ -18,6 +18,7 @@ every modern RPG Maker engine, Ren'Py visual novels and HTML games made with Twi
 | RPG Maker XP | `Save1.rxdata`, … |
 | Ren'Py 7 and 8 | `1-1-LT1.save`, `auto-1-LT1.save`, `quick-1-LT1.save`, … |
 | HTML games (Twine/SugarCube 2) | `<game name>-<date>.save`, from the game's **Saves → Save to Disk** |
+| Wolf RPG Editor (up to 3.279) | `SaveData01.sav`, `SaveData02.sav`, … |
 
 Common uses: give yourself max gold or money, 99 of every item, max level and stats, skip a grind by turning on a
 story switch, or change affection points and flags in a visual novel.
@@ -39,6 +40,8 @@ story switch, or change affection points and flags in a visual novel.
 - **Ren'Py variables**: every game variable (affection points, flags, money, names…) by name, with its type kept.
 - **HTML game (Twine/SugarCube) variables**: every story variable (`$money`, `$player.hp`…) by name, including
   values stored in objects, Maps and story classes.
+- **Wolf RPG Editor variables**: the game's variables by number (money, flags, counters…), and every other value in
+  Advanced. Saves don't store variable names, so compare two saves to find a value.
 - **Advanced tab**: browse *every* value in the save as a tree and edit numbers, text and true/false values. Useful
   for games whose plugins or scripts keep data in their own places.
 - **Powerful search**: exact text, regular expressions, number comparisons (`>1000`, `100..200`) and paths
@@ -63,7 +66,7 @@ story switch, or change affection points and flags in a visual novel.
 Requires Windows 10 or 11 (64-bit). To uninstall, open **Settings → Apps → Installed apps**, find **rpgsaveeditor** and
 click **Uninstall**. Your save files are not touched.
 
-## Where are RPG Maker, Ren'Py and HTML game save files located?
+## Where are RPG Maker, Ren'Py, HTML game and Wolf RPG save files located?
 
 | Engine | Save folder | Files |
 |---|---|---|
@@ -72,6 +75,7 @@ click **Uninstall**. Your save files are not touched.
 | RPG Maker XP, VX, VX Ace | the game's main folder, next to `Game.exe` | `Save01.rvdata2`, `Save1.rvdata`, `Save1.rxdata` |
 | Ren'Py | `game/saves/` in the game's folder, and `%APPDATA%\RenPy\<game name>` | `1-1-LT1.save`, `auto-1-LT1.save`, … |
 | HTML games (Twine/SugarCube) | kept inside the browser or game window; export one with **Saves → Save to Disk** (usually to `Downloads`) | `<game name>-<date>.save` |
+| Wolf RPG Editor | `Save/` in the game's folder | `SaveData01.sav`, `SaveData02.sav`, … |
 
 Open the slot you saved in: `file3` / `Save03` is the third save slot. `global` and `persistent` files hold settings
 shared by all slots, not your progress.
@@ -111,6 +115,16 @@ browser or by opening an `.html` file (sometimes wrapped in an `.exe`), and thei
 
 The edits apply to the passage the save was made on. Going back in the game's history shows the earlier, unedited
 values.
+
+## How to edit a Wolf RPG Editor save
+
+1. **Back up your save file first.**
+2. Save twice in the game with a known change in between (for example, buy something), into two slots.
+3. Open the older save, then the newer one. On **Variables**, turn on **Different from old save**: the money, items or
+   counters that changed show up with their old value and the difference.
+4. Change the value, press <kbd>Ctrl</kbd>+<kbd>S</kbd> and load the save in the game.
+
+Only numbers can be edited; text and the save's structure are kept as they are.
 
 ## Support the project
 
@@ -183,6 +197,8 @@ donation pages) open in your browser only when you click them.
 ## License and disclaimer
 
 Licensed under the [Apache License 2.0](LICENSE). The app icon is by [Icons8](https://icons8.com/).
+Wolf RPG Editor save support is based on [WolfSave](https://github.com/Sinflower/WolfSave) by Sinflower
+([MIT License](src/formats/wolf/LICENSE-WolfSave.txt)).
 
 RPG Save Editor is an unofficial, fan-made tool. It is not affiliated with or endorsed by the makers of RPG Maker.
 RPG Maker is a trademark of its respective owners.
