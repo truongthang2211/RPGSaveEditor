@@ -273,7 +273,7 @@ describe.skipIf(realSaves.length === 0)('real Wolf RPG Editor saves', () => {
     expect(serializeWolfSave(setWolfValue(back, after.find((n) => n.offset === target.offset)!, target.value))).toEqual(raw);
   });
 
-  // Imouto! Life: the money shown in game (11000) is normal variable 7; editing it was checked in game.
+  // In the game this save is from, the money shown (11000) is normal variable 7; editing it was checked in game.
   it.skipIf(!realSaves.includes('SaveData03.sav'))('SaveData03.sav: variable 7 is the money', () => {
     const save = parseWolfSave(new Uint8Array(readFileSync(join(dir, 'SaveData03.sav'))));
     expect(wolfFormat.editor.getVariables(save)[7]).toBe(11000);
