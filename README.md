@@ -19,6 +19,7 @@ every modern RPG Maker engine, Ren'Py visual novels, HTML games made with Twine/
 | Ren'Py 7 and 8 | `1-1-LT1.save`, `auto-1-LT1.save`, `quick-1-LT1.save`, … |
 | HTML games (Twine/SugarCube 2) | `<game name>-<date>.save`, from the game's **Saves → Save to Disk** |
 | Wolf RPG Editor (up to 3.279) | `SaveData01.sav`, `SaveData02.sav`, … |
+| JSON saves | `save.json`, `slot1.json`… from games written in JavaScript |
 
 Common uses: give yourself max gold or money, 99 of every item, max level and stats, skip a grind by turning on a
 story switch, or change affection points and flags in a visual novel.
@@ -38,6 +39,8 @@ story switch, or change affection points and flags in a visual novel.
 - **Items, weapons and armors**: change how many of each you own, with names read from the game's database.
 - **Switches and variables**: turn switches on/off and change variables, with their names from the game.
 - **Ren'Py variables**: every game variable (affection points, flags, money, names…) by name, with its type kept.
+- **JSON saves**: any plain `.json` save, with its top-level values on the Variables page by name and the whole
+  file in Advanced. The file keeps its indentation and layout.
 - **HTML game (Twine/SugarCube) variables**: every story variable (`$money`, `$player.hp`…) by name, including
   values stored in objects, Maps and story classes.
 - **Wolf RPG Editor variables**: the game's variables by number (money, flags, counters…), and every other value in
@@ -66,7 +69,7 @@ story switch, or change affection points and flags in a visual novel.
 Requires Windows 10 or 11 (64-bit). To uninstall, open **Settings → Apps → Installed apps**, find **rpgsaveeditor** and
 click **Uninstall**. Your save files are not touched.
 
-## Where are RPG Maker, Ren'Py, HTML game and Wolf RPG save files located?
+## Where are the save files located?
 
 | Engine | Save folder | Files |
 |---|---|---|
@@ -76,6 +79,7 @@ click **Uninstall**. Your save files are not touched.
 | Ren'Py | `game/saves/` in the game's folder, and `%APPDATA%\RenPy\<game name>` | `1-1-LT1.save`, `auto-1-LT1.save`, … |
 | HTML games (Twine/SugarCube) | kept inside the browser or game window; export one with **Saves → Save to Disk** (usually to `Downloads`) | `<game name>-<date>.save` |
 | Wolf RPG Editor | `Save/` in the game's folder | `SaveData01.sav`, `SaveData02.sav`, … |
+| JSON saves | the game's folder or `%APPDATA%`, or exported by the game's Save button | `save.json`, `slot1.json`, … |
 
 Open the slot you saved in: `file3` / `Save03` is the third save slot. `global` and `persistent` files hold settings
 shared by all slots, not your progress.
@@ -125,6 +129,20 @@ values.
 4. Change the value, press <kbd>Ctrl</kbd>+<kbd>S</kbd> and load the save in the game.
 
 Only numbers can be edited; text and the save's structure are kept as they are.
+
+## How to edit a JSON save
+
+Some games written in JavaScript (run in the browser, or packed as an `.exe` with NW.js or Electron) keep their save
+as a plain `.json` file, usually in the game's folder or in `%APPDATA%`, or exported from a Save button.
+
+1. **Back up the file first.**
+2. Open the `.json` file in RPG Save Editor.
+3. Change the values on **Variables** (top-level values such as `day` or `money`, and the fields of the objects under
+   them), or anything else in **Advanced**.
+4. Press <kbd>Ctrl</kbd>+<kbd>S</kbd> and load the save in the game.
+
+Only the values you change are written; indentation and layout stay as they were. A number too large to keep exactly
+(over 15 digits) stops the file from opening rather than being rounded.
 
 ## Support the project
 
