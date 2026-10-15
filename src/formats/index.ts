@@ -6,12 +6,13 @@ import { xpFormat } from './xp';
 import { renpyFormat } from './renpy';
 import { sugarcubeFormat } from './sugarcube';
 import { jsonFormat } from './json';
+import { wolfFormat } from './wolf';
 import { SaveFormat } from './types';
 
 export * from './types';
 
 /** Every supported save format. Add new formats here. */
-export const SAVE_FORMATS: readonly SaveFormat[] = [mvmzFormat, vxaceFormat, vxFormat, xpFormat, renpyFormat, sugarcubeFormat, jsonFormat];
+export const SAVE_FORMATS: readonly SaveFormat[] = [mvmzFormat, vxaceFormat, vxFormat, xpFormat, renpyFormat, sugarcubeFormat, wolfFormat, jsonFormat];
 
 export function findFormat(filePath: string): SaveFormat | undefined {
   return SAVE_FORMATS.find((format) => format.matches(filePath));

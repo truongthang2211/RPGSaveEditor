@@ -20,8 +20,8 @@ describe('search query', () => {
   });
 
   it('quoted text must match a whole key or value', () => {
-    expect(test('"Lona"', { key: '@name', type: 'String', value: 'Lona' })).toBe(true);
-    expect(test('"Lon"', { key: '@name', type: 'String', value: 'Lona' })).toBe(false);
+    expect(test('"Hero"', { key: '@name', type: 'String', value: 'Hero' })).toBe(true);
+    expect(test('"Her"', { key: '@name', type: 'String', value: 'Hero' })).toBe(false);
     expect(test('"party"', { key: ':party', type: 'Game_Party', value: undefined })).toBe(true);
   });
 

@@ -4,7 +4,7 @@ import { TreeValue } from '../../formats';
  * Advanced-tab search syntax. Terms are separated by spaces and must all match:
  *
  *   gold              key, type or value contains "gold"
- *   "Lona"            key or value is exactly "Lona"
+ *   "Hero"            key or value is exactly "Hero"
  *   /^@stat_/i        key, type or value matches the regex
  *   key:@gold         only the key (also type:, value:, old:)
  *   >1000  <=0  =99   value comparisons; 100..200 is a range; != excludes
