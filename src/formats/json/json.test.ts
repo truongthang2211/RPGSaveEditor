@@ -99,9 +99,9 @@ describe('JSON saves', () => {
   });
 
   it('recognises .json files and gets the game name from the folder', () => {
-    expect(findFormat('C:\\Games\\Not Human\\save.json')?.id).toBe('json');
-    expect(jsonGameName('C:\\Games\\Not Human\\saves\\slot1.json')).toBe('Not Human');
-    expect(jsonGameName('/home/me/Downloads/nothuman_save.json')).toBe('Downloads');
+    expect(findFormat('C:\\Games\\Hero Quest\\save.json')?.id).toBe('json');
+    expect(jsonGameName('C:\\Games\\Hero Quest\\saves\\slot1.json')).toBe('Hero Quest');
+    expect(jsonGameName('/home/me/Downloads/save1.json')).toBe('Downloads');
     expect(looksLikeJsonSave('{"a":1}')).toBe(true);
     expect(looksLikeJsonSave('plain')).toBe(false);
   });
