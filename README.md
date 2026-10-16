@@ -1,4 +1,4 @@
-# RPG Save Editor – RPG Maker (MV, MZ, VX Ace, VX, XP), Ren'Py, Twine/SugarCube and Wolf RPG Editor save editor
+# RPG Save Editor – RPG Maker (MV, MZ, VX Ace, VX, XP, 2000/2003), Ren'Py, Twine/SugarCube and Wolf RPG Editor save editor
 
 [![Latest release](https://img.shields.io/github/v/release/truongthang2211/RPGSaveEditor)](https://github.com/truongthang2211/RPGSaveEditor/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/truongthang2211/RPGSaveEditor/total)](https://github.com/truongthang2211/RPGSaveEditor/releases)
@@ -16,6 +16,7 @@ every modern RPG Maker engine, Ren'Py visual novels, HTML games made with Twine/
 | RPG Maker VX Ace | `Save01.rvdata2`, … |
 | RPG Maker VX | `Save1.rvdata`, … |
 | RPG Maker XP | `Save1.rxdata`, … |
+| RPG Maker 2000/2003 | `Save01.lsd`, … |
 | Ren'Py 7 and 8 | `1-1-LT1.save`, `auto-1-LT1.save`, `quick-1-LT1.save`, … |
 | HTML games (Twine/SugarCube 2) | `<game name>-<date>.save`, from the game's **Saves → Save to Disk** |
 | Wolf RPG Editor (up to 3.279) | `SaveData01.sav`, `SaveData02.sav`, … |
@@ -76,6 +77,7 @@ click **Uninstall**. Your save files are not touched.
 | RPG Maker MZ | `save/` in the game's folder | `file1.rmmzsave`, `global.rmmzsave`, … |
 | RPG Maker MV | `www/save/` in the game's folder | `file1.rpgsave`, `global.rpgsave`, … |
 | RPG Maker XP, VX, VX Ace | the game's main folder, next to `Game.exe` | `Save01.rvdata2`, `Save1.rvdata`, `Save1.rxdata` |
+| RPG Maker 2000/2003 | the game's main folder, next to `RPG_RT.exe` | `Save01.lsd`, `Save02.lsd`, … |
 | Ren'Py | `game/saves/` in the game's folder, and `%APPDATA%\RenPy\<game name>` | `1-1-LT1.save`, `auto-1-LT1.save`, … |
 | HTML games (Twine/SugarCube) | kept inside the browser or game window; export one with **Saves → Save to Disk** (usually to `Downloads`) | `<game name>-<date>.save` |
 | Wolf RPG Editor | `Save/` in the game's folder | `SaveData01.sav`, `SaveData02.sav`, … |
@@ -84,7 +86,7 @@ click **Uninstall**. Your save files are not touched.
 Open the slot you saved in: `file3` / `Save03` is the third save slot. `global` and `persistent` files hold settings
 shared by all slots, not your progress.
 
-## How to edit an RPG Maker save (MV, MZ, VX Ace, VX, XP)
+## How to edit an RPG Maker save (MV, MZ, VX Ace, VX, XP, 2000/2003)
 
 1. **Back up your save file first.**
 2. Open RPG Save Editor and click the file icon (or press <kbd>Ctrl</kbd>+<kbd>O</kbd>, or drag the save onto the
@@ -93,6 +95,9 @@ shared by all slots, not your progress.
    or **Advanced**. Changed values are highlighted.
 4. Press <kbd>Ctrl</kbd>+<kbd>S</kbd> to save, then load the save in the game.
    <kbd>Ctrl</kbd>+<kbd>R</kbd> reloads the file from disk.
+
+In RPG Maker 2000/2003, weapons and armor are items, and item, switch and variable names show as numbers for now
+(the names are in `RPG_RT.ldb`, which isn't read yet). The **Items** page lists the items you already have.
 
 ## How to edit a Ren'Py save
 
@@ -216,7 +221,8 @@ donation pages) open in your browser only when you click them.
 
 Licensed under the [Apache License 2.0](LICENSE). The app icon is by [Icons8](https://icons8.com/).
 Wolf RPG Editor save support is based on [WolfSave](https://github.com/Sinflower/WolfSave) by Sinflower
-([MIT License](src/formats/wolf/LICENSE-WolfSave.txt)).
+([MIT License](src/formats/wolf/LICENSE-WolfSave.txt)). RPG Maker 2000/2003 save support follows
+[liblcf](https://github.com/EasyRPG/liblcf) by the EasyRPG project ([MIT License](src/formats/rm2k/LICENSE-liblcf.txt)).
 
 RPG Save Editor is an unofficial, fan-made tool. It is not affiliated with or endorsed by the makers of RPG Maker.
 RPG Maker is a trademark of its respective owners.
