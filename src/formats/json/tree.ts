@@ -1,49 +1,91 @@
-import { Path, setIn } from '../immutable';
 import { SaveTree, TreeNode, TreeValue } from '../types';
+import { containerOf, JNode, literalAt, nodeAt, parseDoc, patchText, Step } from './doc';
 import { JsonSave } from './save';
 
-const getIn = (obj: any, path: Path): any => path.reduce((value, key) => value?.[key], obj);
+type Ref = readonly Step[];
 
-const segment = (key: string | number) => (typeof key === 'number' ? `[${key}]` : key);
+/** Text longer than this is shown by its length and not edited (a base64 picture in a text box would freeze it). */
+const LONG_TEXT = 2000;
 
-function node(save: JsonSave, path: Path): TreeNode {
-  const key = path[path.length - 1];
-  const value = getIn(save.data, path);
-  const base = { id: path.map(String).join('/'), key: segment(key), ref: path };
+const countOf = (node: JNode) => {
+  const container = containerOf(node);
+  return container.k === 'object' ? container.members.length : container.k === 'array' ? container.items.length : 0;
+};
 
-  if (value === null || value === undefined) return { ...base, type: 'null', value: null, hasChildren: false };
-  if (typeof value === 'number') return { ...base, type: 'Number', value, editable: 'number', hasChildren: false };
-  if (typeof value === 'string') return { ...base, type: 'String', value, editable: 'string', hasChildren: false };
-  if (typeof value === 'boolean') return { ...base, type: 'Boolean', value, editable: 'boolean', hasChildren: false };
-  if (Array.isArray(value)) return { ...base, type: 'Array', summary: `Array(${value.length})`, hasChildren: value.length > 0 };
-  const count = Object.keys(value).length;
-  return { ...base, type: 'Object', summary: `${count} keys`, hasChildren: count > 0 };
+function toTreeNode(node: JNode, ref: Ref, key: string): TreeNode {
+  const base = { id: ref.join('/'), key, ref };
+  switch (node.k) {
+    case 'number':
+      return { ...base, type: 'Number', value: node.value, editable: 'number', hasChildren: false };
+    case 'boolean':
+      return { ...base, type: 'Boolean', value: node.value, editable: 'boolean', hasChildren: false };
+    case 'null':
+      return { ...base, type: 'null', value: null, hasChildren: false };
+    case 'string': {
+      if (node.embedded) {
+        const count = countOf(node);
+        return { ...base, type: 'JSON text', summary: node.embedded.root.k === 'array' ? `Array(${count})` : `${count} keys`, hasChildren: count > 0 };
+      }
+      if (node.value.length > LONG_TEXT) return { ...base, type: 'String', summary: `${node.value.length.toLocaleString('en-US')} characters`, hasChildren: false };
+      return { ...base, type: 'String', value: node.value, editable: 'string', hasChildren: false };
+    }
+    case 'array':
+      return { ...base, type: 'Array', summary: `Array(${node.items.length})`, hasChildren: node.items.length > 0 };
+    default:
+      return { ...base, type: 'Object', summary: `${node.members.length} keys`, hasChildren: node.members.length > 0 };
+  }
 }
 
-function childKeys(value: any): (string | number)[] {
-  if (Array.isArray(value)) return value.map((_, index) => index);
-  if (value && typeof value === 'object') return Object.keys(value);
+/** The tree node at `ref` (used by the Variables page to point at a value). */
+export function treeNodeAt(save: JsonSave, ref: Ref): TreeNode | undefined {
+  const node = nodeAt(save.doc, ref);
+  const last = ref[ref.length - 1];
+  return node && last !== undefined ? toTreeNode(node, ref, typeof last === 'number' ? `[${last}]` : last) : undefined;
+}
+
+function childrenOf(node: JNode, ref: Ref): TreeNode[] {
+  const container = containerOf(node);
+  if (container.k === 'array') return container.items.map((item, i) => toTreeNode(item, [...ref, i], `[${i}]`));
+  if (container.k === 'object') {
+    // With a repeated key, only the last one is the value (like JSON.parse).
+    const last = new Map(container.members.map((member, i) => [member.key, i]));
+    return container.members.flatMap((member, i) => (last.get(member.key) === i ? [toTreeNode(member.value, [...ref, member.key], member.key)] : []));
+  }
   return [];
 }
 
+/** Whether `value` can replace `old`: the same kind of value, and finite for numbers. */
+const checked = (old: JNode, value: TreeValue, key: string): string => {
+  if (old.k === 'number' && typeof value === 'number' && Number.isFinite(value)) return String(value);
+  if (old.k === 'boolean' && typeof value === 'boolean') return String(value);
+  if (old.k === 'string' && !old.embedded && typeof value === 'string') return JSON.stringify(value);
+  throw new Error(`Cannot set ${key} (${old.k}) to ${JSON.stringify(value)}`);
+};
+
 /** The contents of a JSON save as a tree: objects, arrays, and numbers, text and true/false values. */
 export const jsonTree: SaveTree<JsonSave> = {
-  roots: (save) => childKeys(save.data).map((key) => node(save, [key])),
+  roots: (save) => childrenOf(save.doc.root, []),
   children: (save, parent) => {
-    const path = parent.ref as Path;
-    return childKeys(getIn(save.data, path)).map((key) => node(save, [...path, key]));
+    const node = nodeAt(save.doc, parent.ref as Ref);
+    return node ? childrenOf(node, parent.ref as Ref) : [];
   },
   valueOf: (save, treeNode) => {
-    const value = getIn(save.data, treeNode.ref as Path);
-    return value === undefined || (value !== null && typeof value === 'object') ? undefined : (value as TreeValue);
+    const node = nodeAt(save.doc, treeNode.ref as Ref);
+    if (!node) return undefined;
+    if (node.k === 'null') return null;
+    if (node.k === 'string') return node.embedded ? undefined : node.value;
+    return node.k === 'number' || node.k === 'boolean' ? node.value : undefined;
   },
   setValue: (save, treeNode, value) => {
-    const path = treeNode.ref as Path;
-    const old = getIn(save.data, path);
-    // Same JSON type only: never replace an object/array or null with a primitive.
-    if (old === null || typeof old === 'object' || typeof old !== typeof value) {
-      throw new Error(`Cannot set ${path.join('.')} (${old === null ? 'null' : typeof old}) to ${JSON.stringify(value)}`);
-    }
-    return { ...save, data: setIn(save.data, path, value) };
+    const ref = treeNode.ref as Ref;
+    const old = nodeAt(save.doc, ref);
+    if (!old) throw new Error(`No such value: ${ref.join('.')}`);
+    let literal = checked(old, value, ref.join('.'));
+    // Setting a value to what it is keeps the text as it is (`1.0` stays `1.0`).
+    if ((old.k === 'number' || old.k === 'boolean' || old.k === 'string') && old.value === value) return save;
+    // Setting it back to what it was when the file was opened restores the file's own text for it.
+    const original = nodeAt(save.loaded, ref);
+    if (original && original.k === old.k && 'value' in original && original.value === value) literal = literalAt(save.loaded, ref) ?? literal;
+    return { ...save, doc: parseDoc(patchText(save.doc, ref, literal)) };
   },
 };

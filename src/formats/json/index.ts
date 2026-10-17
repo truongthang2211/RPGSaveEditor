@@ -1,11 +1,11 @@
-import { readText, writeText } from '../../utils/fileUtils';
+import { readBinary, writeBinary } from '../../utils/fileUtils';
 import { fileNameFromPath, hasExtension, pathSegments } from '../../utils/path';
-import { sameValue } from '../sameValue';
 import { NamedVariable, SaveEditor, SaveFormat, TreeNode } from '../types';
-import { JsonSave, parseJsonSave, serializeJsonSave } from './save';
+import { naninovelVariables } from './naninovel';
+import { JsonSave, parseJsonBytes, sameJsonData, serializeJsonBytes } from './save';
 import { jsonTree } from './tree';
 
-export const JSON_EXTENSIONS = ['json'] as const;
+export const JSON_EXTENSIONS = ['json', 'es3', 'nson'] as const;
 
 /** Folders that only hold the saves: the game is the one above. */
 const SAVE_DIRS = ['save', 'saves', 'savedata', 'data', 'userdata'];
@@ -16,7 +16,7 @@ export function jsonGameName(filePath: string): string | null {
   parts.pop(); // slot1.json
   let folder = parts.pop();
   if (folder && SAVE_DIRS.includes(folder.toLowerCase())) folder = parts.pop() ?? folder;
-  return folder || fileNameFromPath(filePath).replace(/\.json$/i, '') || null;
+  return folder || fileNameFromPath(filePath).replace(/\.(json|es3|nson)$/i, '') || null;
 }
 
 const isLeaf = (node: TreeNode) => !node.hasChildren && node.editable !== undefined;
@@ -25,15 +25,34 @@ const isLeaf = (node: TreeNode) => !node.hasChildren && node.editable !== undefi
  * The values of the save by name: the top-level numbers, text and true/false
  * values (`day`), and those of the objects directly under it (`kitchen.beer`).
  * Everything deeper is in Advanced.
+ *
+ * Unity's Easy Save stores each key as `{ "__type": "int", "value": 5 }` (a
+ * value) or `{ "__type": "Player,Assembly-CSharp", "hp": 50 }` (an object):
+ * a value is shown under its key, and the type marker is not a variable.
  */
 function namedVariables(save: JsonSave): NamedVariable[] {
+  const naninovel = naninovelVariables(save);
+  if (naninovel) return naninovel;
   const result: NamedVariable[] = [];
   for (const node of jsonTree.roots(save)) {
     if (isLeaf(node)) {
       result.push({ name: node.key, node });
     } else if (node.type === 'Object') {
-      for (const field of jsonTree.children(save, node)) {
-        if (isLeaf(field)) result.push({ name: `${node.key}.${field.key}`, node: field });
+      const fields = jsonTree.children(save, node);
+      const wrapped = fields.some((field) => field.key === '__type') ? fields.find((field) => field.key === 'value') : undefined;
+      if (wrapped && isLeaf(wrapped)) {
+        result.push({ name: node.key, node: wrapped });
+        continue;
+      }
+      if (wrapped?.type === 'Object') {
+        // `{ "__type": "...", "value": { "hp": 50 } }`: the fields of the value.
+        for (const field of jsonTree.children(save, wrapped)) {
+          if (isLeaf(field)) result.push({ name: `${node.key}.${field.key}`, node: field });
+        }
+        continue;
+      }
+      for (const field of fields) {
+        if (isLeaf(field) && field.key !== '__type') result.push({ name: `${node.key}.${field.key}`, node: field });
       }
     }
   }
@@ -61,18 +80,18 @@ const jsonEditor: SaveEditor<JsonSave> = {
 
 export const jsonFormat: SaveFormat<JsonSave> = {
   id: 'json',
-  label: 'JSON saves',
-  hint: 'Plain .json saves from games written in JavaScript (browser, NW.js, Electron...).',
+  label: 'JSON saves (Unity Easy Save, Naninovel)',
+  hint: 'Plain .json saves from games written in JavaScript, Unity .es3 saves that are not encrypted, and Naninovel .json/.nson saves.',
   extensions: JSON_EXTENSIONS,
   matches: (filePath) => hasExtension(filePath, JSON_EXTENSIONS),
   pages: ['Variables', 'Advanced'],
 
   async read(filePath) {
-    return { data: parseJsonSave(await readText(filePath)) };
+    return { data: await parseJsonBytes(await readBinary(filePath)) };
   },
 
   async write(filePath, { data }) {
-    await writeText(filePath, serializeJsonSave(data));
+    await writeBinary(filePath, await serializeJsonBytes(data));
   },
 
   // Names come from the save itself.
@@ -80,6 +99,6 @@ export const jsonFormat: SaveFormat<JsonSave> = {
   gameName: jsonGameName,
   editor: jsonEditor,
   tree: jsonTree,
-  sameData: (a, b) => a.text === b.text && sameValue(a.data, b.data),
+  sameData: sameJsonData,
   namedVariables,
 };

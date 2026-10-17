@@ -20,7 +20,7 @@ every modern RPG Maker engine, Ren'Py visual novels, HTML games made with Twine/
 | Ren'Py 7 and 8 | `1-1-LT1.save`, `auto-1-LT1.save`, `quick-1-LT1.save`, … |
 | HTML games (Twine/SugarCube 2) | `<game name>-<date>.save`, from the game's **Saves → Save to Disk** |
 | Wolf RPG Editor (up to 3.279) | `SaveData01.sav`, `SaveData02.sav`, … |
-| JSON saves | `save.json`, `slot1.json`… from games written in JavaScript |
+| JSON saves, Unity Easy Save, Naninovel | `save.json`, `slot1.json`… from games written in JavaScript; `SaveFile.es3` from Unity games (not encrypted); Naninovel `GameSave001`, `GameQuickSave001`, `GameAutoSave001`, `GlobalSave` as `.json` or `.nson` |
 
 Common uses: give yourself max gold or money, 99 of every item, max level and stats, skip a grind by turning on a
 story switch, or change affection points and flags in a visual novel.
@@ -40,8 +40,10 @@ story switch, or change affection points and flags in a visual novel.
 - **Items, weapons and armors**: change how many of each you own, with names read from the game's database.
 - **Switches and variables**: turn switches on/off and change variables, with their names from the game.
 - **Ren'Py variables**: every game variable (affection points, flags, money, names…) by name, with its type kept.
-- **JSON saves**: any plain `.json` save, with its top-level values on the Variables page by name and the whole
-  file in Advanced. The file keeps its indentation and layout.
+- **JSON saves, Unity Easy Save and Naninovel**: any plain `.json` save, Unity's Easy Save `.es3` saves when they are
+  not encrypted (gzip-compressed ones too), and Naninovel `.json` / `.nson` saves. Values are on the Variables page by
+  name and the whole file is in Advanced, including JSON kept inside strings. An edit changes only that value in the
+  file: indentation, `1.0` and everything else stay as they were.
 - **HTML game (Twine/SugarCube) variables**: every story variable (`$money`, `$player.hp`…) by name, including
   values stored in objects, Maps and story classes.
 - **Wolf RPG Editor variables**: the game's variables by number (money, flags, counters…), and every other value in
@@ -81,7 +83,7 @@ click **Uninstall**. Your save files are not touched.
 | Ren'Py | `game/saves/` in the game's folder, and `%APPDATA%\RenPy\<game name>` | `1-1-LT1.save`, `auto-1-LT1.save`, … |
 | HTML games (Twine/SugarCube) | kept inside the browser or game window; export one with **Saves → Save to Disk** (usually to `Downloads`) | `<game name>-<date>.save` |
 | Wolf RPG Editor | `Save/` in the game's folder | `SaveData01.sav`, `SaveData02.sav`, … |
-| JSON saves | the game's folder or `%APPDATA%`, or exported by the game's Save button | `save.json`, `slot1.json`, … |
+| JSON saves, Unity Easy Save, Naninovel | the game's folder or `%APPDATA%`; Unity games: `%USERPROFILE%\AppData\LocalLow\<studio>\<game>`; Naninovel slots are in its `Saves` subfolder | `save.json`, `SaveFile.es3`, `GameSave001.json`, `GameSave001.nson`, `GameQuickSave001.nson`, `GameAutoSave001.nson`, `GlobalSave.nson`, … |
 
 Open the slot you saved in: `file3` / `Save03` is the third save slot. `global` and `persistent` files hold settings
 shared by all slots, not your progress.
@@ -146,8 +148,16 @@ as a plain `.json` file, usually in the game's folder or in `%APPDATA%`, or expo
    them), or anything else in **Advanced**.
 4. Press <kbd>Ctrl</kbd>+<kbd>S</kbd> and load the save in the game.
 
-Only the values you change are written; indentation and layout stay as they were. A number too large to keep exactly
-(over 15 digits) stops the file from opening rather than being rounded.
+Only the values you change are written: the file is edited in place, so indentation, key order, `1.0` and numbers too
+large for a double stay exactly as they were.
+
+Unity games that use Easy Save keep `.es3` files, which are JSON too. If the game turned on Easy Save's encryption, the
+file can't be opened (it needs the game's password); compression is handled.
+
+Games made with Naninovel (a visual novel engine for Unity) save `GameSave001.json`, or `.nson` when they compress it.
+Their state is JSON inside strings; the app opens those strings, so the story's own variables (affection, flags,
+counters) and the game's values (money, day, action points…) are listed by name on **Variables**. Save twice with a
+change in between, then use **Different from old save** to find a value.
 
 ## Support the project
 
