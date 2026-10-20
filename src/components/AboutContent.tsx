@@ -93,6 +93,21 @@ const FormatList = styled.ul`
   }
 `;
 
+const FormatDetails = styled.details`
+  margin: 8px 0;
+`;
+
+const FormatSummary = styled.summary`
+  width: fit-content;
+  cursor: pointer;
+  font-weight: 600;
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.primaryColor};
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+`;
+
 const FormatHint = styled.span`
   display: block;
   margin: 2px 0 4px;
@@ -290,17 +305,20 @@ const About: React.FC = () => {
       <Card aria-labelledby="about-app">
         <CardTitle id="about-app">About</CardTitle>
         <p>Edit gold, items, characters, switches, variables and any other value in RPG Maker, Ren'Py and HTML game saves:</p>
-        <FormatList aria-label="Supported formats">
-          {SAVE_FORMATS.map((format) => (
-            <React.Fragment key={format.id}>
-              <li>
-                {format.label}
-                {format.hint && <FormatHint>{format.hint}</FormatHint>}
-              </li>
-              <li>{format.extensions.map((ext) => `.${ext}`).join(', ')}</li>
-            </React.Fragment>
-          ))}
-        </FormatList>
+        <FormatDetails>
+          <FormatSummary>Supported formats ({SAVE_FORMATS.length})</FormatSummary>
+          <FormatList aria-label="Supported formats">
+            {SAVE_FORMATS.map((format) => (
+              <React.Fragment key={format.id}>
+                <li>
+                  {format.label}
+                  {format.hint && <FormatHint>{format.hint}</FormatHint>}
+                </li>
+                <li>{format.extensions.map((ext) => `.${ext}`).join(', ')}</li>
+              </React.Fragment>
+            ))}
+          </FormatList>
+        </FormatDetails>
         <Links>
           {LINKS.map(([label, href]) => (
             <Link key={href} href={href}>
