@@ -5,6 +5,7 @@ import { useContent } from '../context/ContentContext';
 import { detectFormat, notASaveReason, saveFileFilters, SaveFormat, supportedExtensionsText } from '../formats';
 import { selectFile } from '../utils/fileUtils';
 import { fileNameFromPath } from '../utils/path';
+import { rememberRecentFile } from '../utils/recentFiles';
 import { maybeAskForSupport } from '../components/SupportPrompt';
 
 const toastOptions: ToastOptions = {
@@ -65,6 +66,8 @@ export const useOpenPath = () => {
         warningNotify('Could not determine game name from file path.');
         gameName = 'Unknown Game';
       }
+
+      rememberRecentFile(filePath);
 
       setContent((prev) => ({
         ...prev,
