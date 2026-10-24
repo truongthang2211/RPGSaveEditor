@@ -66,7 +66,9 @@ const Content: React.FC<ContentProps> = ({ page }) => {
     <ContentContainer>
       {/* A new page, file or reload clears a previous rendering error. */}
       <ErrorBoundary resetKeys={[page, content.filePath, content.originSaveData]}>
-        {displayContent}
+        {/* A new file remounts the page: its own state (search, selection, expanded nodes...) is
+            node references into the previous file's own tree, meaningless (or crash-prone) for this one. */}
+        <React.Fragment key={content.filePath}>{displayContent}</React.Fragment>
       </ErrorBoundary>
       {/* <pre>{JSON.stringify(content.saveData, null, 2)}</pre> */}
     </ContentContainer>
