@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useSyncExternalStore } from 'react';
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import styled from 'styled-components';
-import { closeNotesDialog, currentNotesDialog, subscribeNotesDialog } from '../utils/dialogs';
+import { chooseExtra, closeNotesDialog, currentNotesDialog, subscribeNotesDialog } from '../utils/dialogs';
 import { Markdown } from '../utils/markdown';
 
 const Overlay = styled.div`
@@ -95,14 +95,39 @@ const Button = styled.button<{ $primary?: boolean }>`
   }
 `;
 
+const Message = styled.p`
+  margin: 0;
+  padding: 0 20px;
+  font-size: 14px;
+  line-height: 1.5;
+`;
+
+const Input = styled.input`
+  margin: 10px 20px 0;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  border: 1px solid ${({ theme }) => theme.borderColor};
+  background-color: transparent;
+  color: ${({ theme }) => theme.color};
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.primaryColor};
+    outline-offset: 1px;
+  }
+`;
+
 /** Renders the dialogs requested with showNotesDialog(). Mount once inside the ThemeProvider. */
 const DialogHost: React.FC = () => {
   const dialog = useSyncExternalStore(subscribeNotesDialog, currentNotesDialog);
   const okButton = useRef<HTMLButtonElement>(null);
+  const cancelButton = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [text, setText] = useState('');
 
   useEffect(() => {
     if (!dialog) return;
-    okButton.current?.focus();
+    setText('');
+    (dialog.input ? inputRef.current : dialog.progress ? cancelButton.current : okButton.current)?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') closeNotesDialog(false);
     };
@@ -115,13 +140,40 @@ const DialogHost: React.FC = () => {
     <Overlay>
       <Box role="dialog" aria-modal="true" aria-labelledby="notes-dialog-title">
         <Title id="notes-dialog-title">{dialog.title}</Title>
-        <Body text={dialog.body || 'No release notes available.'} />
+        {dialog.progress ? (
+          <Message>{dialog.progress.message}</Message>
+        ) : dialog.input ? (
+          <>
+            <Message>{dialog.input.message}</Message>
+            <Input
+              ref={inputRef}
+              type="password"
+              value={text}
+              autoComplete="off"
+              spellCheck={false}
+              aria-label="Password"
+              onChange={(event) => setText(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && text) closeNotesDialog(true, text);
+              }}
+            />
+          </>
+        ) : (
+          <Body text={dialog.body || 'No release notes available.'} />
+        )}
         {dialog.footer && <Footer>{dialog.footer}</Footer>}
         <Buttons>
-          {dialog.cancelLabel && <Button onClick={() => closeNotesDialog(false)}>{dialog.cancelLabel}</Button>}
-          <Button $primary ref={okButton} onClick={() => closeNotesDialog(true)}>
-            {dialog.okLabel}
-          </Button>
+          {dialog.input?.extraLabel && <Button onClick={chooseExtra}>{dialog.input.extraLabel}</Button>}
+          {dialog.cancelLabel && (
+            <Button ref={cancelButton} onClick={() => closeNotesDialog(false)}>
+              {dialog.cancelLabel}
+            </Button>
+          )}
+          {!dialog.progress && (
+            <Button $primary ref={okButton} disabled={!!dialog.input && !text} onClick={() => closeNotesDialog(true, text)}>
+              {dialog.okLabel}
+            </Button>
+          )}
         </Buttons>
       </Box>
     </Overlay>

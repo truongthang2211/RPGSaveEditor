@@ -5,6 +5,9 @@ import { jsonFormat, jsonGameName } from './index';
 import { looksLikeJsonSave, parseJsonBytes, parseJsonSave, sameJsonData, serializeJsonBytes, serializeJsonSave } from './save';
 import { jsonTree } from './tree';
 import { parseDoc } from './doc';
+import { assetStrings, GameSource, metadataLiterals, scanCombinations, scanSingles, scanSources, textRuns } from './gameScan';
+import { candidatePasswords, decryptEs3, encryptEs3, PasswordRequiredError } from './es3crypto';
+import { bytesToBase64, decryptAesEcb, encryptAesEcb, looksLikeAesEcbBase64 } from './aesEcb';
 import { findFormat } from '..';
 import { TreeNode } from '../types';
 
@@ -35,6 +38,12 @@ const variable = (save: Save, name: string) => jsonFormat.namedVariables!(save).
 const set = (save: Save, node: TreeNode, value: number | string | boolean) => jsonTree.setValue(save, node, value);
 const encode = (value: unknown, indent?: number) => new TextEncoder().encode(JSON.stringify(value, null, indent));
 const decode = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
+// A control character ends each UTF-16 string, like the length bytes in a real file.
+const utf16 = (text: string) => Uint8Array.from([...[...text].flatMap((c) => [c.charCodeAt(0), 0]), 1, 0]);
+const prefixed = (text: string) => Uint8Array.from([text.length, 0, 0, 0, ...[...text].map((c) => c.charCodeAt(0)), 0, 0, 0]);
+const joinBytes = (...parts: Uint8Array[]) => Uint8Array.from(parts.flatMap((part) => [...part]));
+const source = (kind: GameSource['kind'], bytes: Uint8Array): GameSource => ({ name: 'file', kind, chunks: async function* () { yield bytes; } });
+
 const pipe = async (bytes: Uint8Array, stream: CompressionStream | DecompressionStream) =>
   new Uint8Array(await new Response(new Blob([bytes as BlobPart]).stream().pipeThrough(stream)).arrayBuffer());
 
@@ -55,7 +64,8 @@ describe('JSON saves', () => {
     expect(path(save, 'isNight')).toMatchObject({ type: 'Boolean', editable: 'boolean' });
     expect(path(save, 'guests')).toMatchObject({ type: 'Array', summary: 'Array(1)' });
     expect(path(save, 'visitor')).toMatchObject({ type: 'null', hasChildren: false });
-    expect(names(save)).toEqual(['day', 'isNight', 'currentRoom', 'kitchen.beer', 'kitchen.cigarette']);
+    // Two levels into an object (not just one), so a `Dictionary<id, Data>`-style save shows its values too.
+    expect(names(save)).toEqual(['day', 'isNight', 'currentRoom', 'kitchen.beer', 'kitchen.cigarette', 'nested.deep.value']);
   });
 
   it('writes the file back unchanged when nothing was edited, in whatever layout it had', () => {
@@ -180,6 +190,25 @@ describe('JSON inside JSON strings', () => {
     expect(sameJsonData(a, b)).toBe(true);
     expect(sameJsonData(a, parseJsonSave(JSON.stringify({ s: '{"x":2}' })))).toBe(false);
   });
+
+  it("lists a string's own fields on the Variables page, the same as a real object (Utage's save system keeps part of the save this way)", () => {
+    const save = parseJsonSave(JSON.stringify({ playerData: JSON.stringify({ Name: 'Hero', Hp: 50 }), timeData: JSON.stringify({ Day: 1 }), version: '1.5' }));
+    expect(names(save)).toEqual(['playerData.Name', 'playerData.Hp', 'timeData.Day', 'version']);
+    expect(variable(save, 'playerData.Hp')).toMatchObject({ value: 50, editable: 'number' });
+  });
+
+  it('reaches into a Dictionary<id, Data> (an object of objects, keyed by ID) one level further than a plain object', () => {
+    const costData = { 1: { id: 1, haveAmount: 3 }, 2: { id: 2, haveAmount: 1000 } };
+    const save = parseJsonSave(JSON.stringify({ costData: JSON.stringify(costData), simple: { a: 1 } }));
+    expect(names(save)).toEqual(['costData.1.id', 'costData.1.haveAmount', 'costData.2.id', 'costData.2.haveAmount', 'simple.a']);
+  });
+
+  it('leaves out a whole key whose Dictionary has too many entries to list one by one, not just the extra ones', () => {
+    const huge: Record<string, { v: number }> = {};
+    for (let i = 0; i < 101; i++) huge[`e${i}`] = { v: i };
+    const save = parseJsonSave(JSON.stringify({ huge: JSON.stringify(huge), small: { a: 1 } }));
+    expect(names(save)).toEqual(['small.a']);
+  });
 });
 
 describe('Easy Save (.es3) saves', () => {
@@ -206,6 +235,34 @@ describe('Easy Save (.es3) saves', () => {
     expect(out).toBe(JSON.stringify({ ...es3, gold: { __type: 'int', value: 99999 } }, null, 2));
   });
 
+  it('reads the items of a list that Easy Save writes without a key (`"__type" : "float"1`)', async () => {
+    const text = [
+      '{',
+      '	"Key" : {',
+      '		"__type" : "System.Collections.Generic.List`1[[System.Object, mscorlib]],mscorlib",',
+      '		"value" : [',
+      '			{',
+      '				"__type" : "float"1',
+      '			},{',
+      '				"__type" : "bool"true',
+      '			},{',
+      '				"__type" : "string""abc"',
+      '			}',
+      '		]',
+      '	}',
+      '}',
+    ].join('\r\n');
+    const bytes = new TextEncoder().encode(text);
+    const save = await parseJsonBytes(bytes);
+    expect(await serializeJsonBytes(save)).toBe(bytes);
+
+    const item = (i: number) => jsonTree.children(save, jsonTree.children(save, jsonTree.roots(save)[0]).find((n) => n.key === 'value')!)[i];
+    const count = jsonTree.children(save, item(0)).find((n) => n.key === 'value')!;
+    expect(jsonTree.valueOf(save, count)).toBe(1);
+    const edited = set(save, count, 5);
+    expect(decode(await serializeJsonBytes(edited))).toBe(text.replace('"float"1', '"float"5'));
+  });
+
   it('opens gzip-compressed saves and compresses them again when edited', async () => {
     const packed = await pipe(encode(es3), new CompressionStream('gzip'));
     const save = await parseJsonBytes(packed);
@@ -225,9 +282,184 @@ describe('Easy Save (.es3) saves', () => {
     expect((await serializeJsonBytes(set(bom, variable(bom, 'gold'), 1))).slice(0, 3)).toEqual(new Uint8Array([0xef, 0xbb, 0xbf]));
 
     const encrypted = Uint8Array.from({ length: 64 }, (_, i) => (i * 73 + 41) & 0xff);
-    await expect(parseJsonBytes(encrypted)).rejects.toThrow(/encrypted/);
+    await expect(parseJsonBytes(encrypted)).rejects.toBeInstanceOf(PasswordRequiredError);
     await expect(parseJsonBytes(new TextEncoder().encode('<?xml version="1.0"?><a/>'))).rejects.toThrow(/isn't JSON text/);
     await expect(parseJsonBytes(Uint8Array.from([0x1f, 0x8b, 1, 2, 3]))).rejects.toThrow(/compressed/);
+  });
+});
+
+describe('encrypted Easy Save saves', () => {
+  const plain = encode({ gold: { __type: 'int', value: 100 } }, 2);
+
+  it('encrypts and decrypts with the password, and refuses another one', async () => {
+    const locked = await encryptEs3(plain, 'hunter2!');
+    expect(locked.length % 16).toBe(0);
+    expect(await decryptEs3(locked, 'hunter2!')).toEqual(plain);
+    // A wrong password passes the padding check about 1 time in 256 (by chance), but never decrypts to the real plaintext.
+    expect(await decryptEs3(locked, 'hunter3!')).not.toEqual(plain);
+  });
+
+  it('finds a usual password by itself, the game name in the path too', async () => {
+    const byDefault = await parseJsonBytes(await encryptEs3(plain, 'password'));
+    expect(byDefault.password).toBe('password');
+    expect(names(byDefault)).toEqual(['gold']);
+
+    const named = await encryptEs3(plain, 'MyStudioGame');
+    const found = await parseJsonBytes(named, { filePath: 'C:/Users/me/AppData/LocalLow/Studio/MyStudioGame/SaveFile.es3' });
+    expect(found.password).toBe('MyStudioGame');
+  });
+
+  it('asks for the password when it is not a usual one, and says when the given one is wrong', async () => {
+    const locked = await encryptEs3(plain, 'X7#qz-unusual');
+    await expect(parseJsonBytes(locked)).rejects.toMatchObject({ wrongPassword: false });
+    await expect(parseJsonBytes(locked, { password: 'nope' })).rejects.toMatchObject({ wrongPassword: true });
+    const save = await parseJsonBytes(locked, { password: 'X7#qz-unusual' });
+    expect(await serializeJsonBytes(save)).toBe(locked);
+  });
+
+  it('keeps the save encrypted, with the same password, and compressed when it was', async () => {
+    for (const compressed of [false, true]) {
+      const inner = compressed ? await pipe(plain, new CompressionStream('gzip')) : plain;
+      const save = await parseJsonBytes(await encryptEs3(inner, 'Zq9!pass'), { password: 'Zq9!pass' });
+      const out = await serializeJsonBytes(set(save, variable(save, 'gold'), 7));
+      const reopened = await parseJsonBytes(out, { password: 'Zq9!pass' });
+      expect(reopened.compression).toBe(compressed ? 'gzip' : undefined);
+      expect(variable(reopened, 'gold')).toMatchObject({ value: 7 });
+    }
+  });
+
+  it('tries what worked before first, then the names in the path, then the usual ones', () => {
+    const list = candidatePasswords('/home/me/LocalLow/Studio/Game/Save.es3', ['mine']);
+    expect(list.slice(0, 3)).toEqual(['mine', 'Studio', 'studio']);
+    expect(list).toContain('Game');
+    expect(list).toContain('password');
+    expect(new Set(list).size).toBe(list.length);
+  });
+});
+
+describe('AES-ECB saves (a hand-rolled scheme some games use instead of Easy Save)', () => {
+  const plain = encode({ hp: { __type: 'int', value: 50 } }, 2);
+  const KEY = 'Xk3!qRzN8pL1maYt'; // 16 characters: games hardcode a key exactly this long for this scheme
+
+  it('encrypts and decrypts with the key, and refuses another one, or one that is too short', async () => {
+    const locked = await encryptAesEcb(plain, KEY);
+    expect(locked.length % 16).toBe(0);
+    expect(decryptAesEcb(locked, KEY)).toEqual(plain);
+    expect(decryptAesEcb(locked, 'not-the-key-used!')).toBeNull();
+    expect(decryptAesEcb(locked, 'short')).toBeNull(); // under 16 characters: not even a full key
+  });
+
+  it('recognises the Base64 text (with or without a BOM) and opens it with the key', async () => {
+    const base64 = bytesToBase64(await encryptAesEcb(plain, KEY));
+    const bytes = new TextEncoder().encode(base64);
+    expect(looksLikeAesEcbBase64(base64)).toBe(true);
+    expect(looksLikeAesEcbBase64('not base64 at all!')).toBe(false);
+
+    const save = await parseJsonBytes(bytes, { password: KEY });
+    expect(save.cipher).toBe('aesEcb');
+    expect(names(save)).toEqual(['hp']);
+    expect(await serializeJsonBytes(save)).toEqual(bytes);
+
+    const withBom = new TextEncoder().encode('﻿' + base64);
+    const bomSave = await parseJsonBytes(withBom, { password: KEY });
+    expect(await serializeJsonBytes(bomSave)).toEqual(withBom);
+  });
+
+  it('asks for the key like any other encrypted save, and keeps it (and the BOM) when edited', async () => {
+    const base64 = bytesToBase64(await encryptAesEcb(plain, KEY));
+    const bytes = new TextEncoder().encode('﻿' + base64);
+    await expect(parseJsonBytes(bytes)).rejects.toBeInstanceOf(PasswordRequiredError);
+
+    const save = await parseJsonBytes(bytes, { password: KEY });
+    const edited = set(save, variable(save, 'hp'), 99);
+    const out = await serializeJsonBytes(edited);
+    expect(out[0]).toBe(0xef); // BOM kept
+    const reopened = await parseJsonBytes(out, { password: KEY });
+    expect(variable(reopened, 'hp')).toMatchObject({ value: 99 });
+  });
+
+  it('is found by scanning the game files too, the same way as Easy Save', async () => {
+    const locked = await encryptAesEcb(plain, KEY);
+    const bytes = new TextEncoder().encode(bytesToBase64(locked));
+    const dll = source('dll', utf16(KEY));
+    expect(await scanSources(bytes, [dll], { combinations: false })).toBe(KEY);
+  });
+});
+
+describe('finding the password in the game files', () => {
+  it('reads strings: UTF-16 text, plain text, and the length-prefixed ones of Unity data', () => {
+    expect(textRuns(joinBytes(Uint8Array.of(1, 2, 3), utf16('Secret99'), Uint8Array.of(0, 7), utf16('ab')), true)).toEqual(['Secret99']);
+    expect(textRuns(joinBytes(Uint8Array.of(0, 9), new TextEncoder().encode('hunter22'), Uint8Array.of(0)), false)).toEqual(['hunter22']);
+    expect(assetStrings(joinBytes(Uint8Array.of(9, 9, 9), prefixed('MyKey#42'), prefixed('x'), Uint8Array.of(77, 0, 0, 0, 1, 2)))).toEqual(['MyKey#42', 'x']);
+  });
+
+  it('finds the password among the strings of the game, in each kind of file', async () => {
+    const plain = encode({ gold: { __type: 'int', value: 100 } }, 2);
+    const locked = await encryptEs3(plain, 'Tr0ub4dor&3');
+    const noise = ['alpha', 'Beta', 'Gamma_delta', 'Epsilon9'];
+    const dll = joinBytes(...noise.map(utf16), utf16('Tr0ub4dor&3'));
+    const assets = joinBytes(...noise.map(prefixed), prefixed('Tr0ub4dor&3'));
+    const text = joinBytes(...noise.map((w) => Uint8Array.of(...new TextEncoder().encode(w), 0)), new TextEncoder().encode('Tr0ub4dor&3'));
+    for (const [kind, bytes] of [['dll', dll], ['assets', assets], ['text', text]] as const) {
+      expect(await scanSources(locked, [source(kind, bytes)])).toBe('Tr0ub4dor&3');
+    }
+    expect(await scanSources(locked, [source('dll', joinBytes(...noise.map(utf16)))])).toBeNull();
+  });
+
+  it('reads the string constants of an IL2CPP metadata file, and finds a password made of two of them', async () => {
+    const literals = ['alpha', 'Zx!9', 'beta', 'q#r', 'gamma'];
+    const text = new TextEncoder().encode(literals.join(''));
+    const header = new DataView(new ArrayBuffer(256));
+    header.setUint32(0, 0xfab11baf, true);
+    header.setInt32(8, 256, true); // the list of (length, position)
+    header.setInt32(12, literals.length * 8, true);
+    const dataAt = 256 + literals.length * 8;
+    header.setInt32(16, dataAt, true);
+    header.setInt32(20, text.length, true);
+    const entries = new DataView(new ArrayBuffer(literals.length * 8));
+    let position = 0;
+    literals.forEach((word, i) => {
+      entries.setUint32(i * 8, word.length, true);
+      entries.setUint32(i * 8 + 4, position, true);
+      position += word.length;
+    });
+    const metadata = joinBytes(new Uint8Array(header.buffer), new Uint8Array(entries.buffer), text);
+    expect(metadataLiterals(metadata)).toEqual(literals);
+    expect(metadataLiterals(Uint8Array.of(1, 2, 3))).toBeNull();
+
+    const locked = await encryptEs3(encode({ a: 1 }), 'Zx!9q#r');
+    expect(await scanSources(locked, [source('text', metadata)], { combinations: false })).toBeNull();
+    expect(await scanSources(locked, [source('text', metadata)])).toBe('Zx!9q#r');
+  });
+
+  it('runs the two passes separately, so the pieces of a first (quick) pass can be reused by a second one without reading the files again', async () => {
+    // textRuns (the 'dll' kind) only keeps runs of 4+ characters, so both pieces need to be that long.
+    const locked = await encryptEs3(encode({ a: 1 }), 'Zx!9q#rZ');
+    const metadata = source('dll', joinBytes(...['alpha', 'Zx!9', 'beta', 'q#rZ', 'gamma'].map(utf16)));
+
+    const singles = await scanSingles(locked, [metadata]);
+    expect(singles.password).toBeNull(); // the password needs two of them put together
+    expect(singles.pieces.sort()).toEqual(['Zx!9', 'q#rZ']);
+
+    // The combinations pass takes the pieces directly: no GameSource, so nothing to read.
+    expect(await scanCombinations(locked, singles.pieces)).toBe('Zx!9q#rZ');
+    expect(await scanCombinations(locked, [])).toBeNull();
+
+    // scanSources (both passes together) agrees.
+    expect(await scanSources(locked, [metadata])).toBe('Zx!9q#rZ');
+  });
+
+  it('stops when asked, and reports its progress', async () => {
+    const locked = await encryptEs3(encode({ a: 1 }), 'Zz-not-there-1');
+    const words = joinBytes(...Array.from({ length: 200 }, (_, i) => utf16(`candidate${i}`)));
+    const seen: number[] = [];
+    expect(await scanSources(locked, [source('dll', words)], { onProgress: ({ tried }) => seen.push(tried) })).toBeNull();
+    expect(seen[seen.length - 1]).toBe(200);
+    const abort = new AbortController();
+    abort.abort();
+    const none: number[] = [];
+    expect(await scanSources(locked, [source('dll', words)], { signal: abort.signal, onProgress: ({ tried }) => none.push(tried) })).toBeNull();
+    expect(none).toEqual([]);
   });
 });
 
@@ -307,7 +539,9 @@ const realSaves = existsSync(dir) ? readdirSync(dir).filter((f) => /\.(json|nson
 describe.skipIf(realSaves.length === 0)('real JSON saves', () => {
   it.each(realSaves)('%s: writes back unchanged, and an edit changes only that value', async (file) => {
     const bytes = new Uint8Array(readFileSync(join(dir, file)));
-    const save = await parseJsonBytes(bytes);
+    // A save locked with a password the app can't find is asked for in the app.
+    const save = await parseJsonBytes(bytes).catch((error) => (error instanceof PasswordRequiredError ? null : Promise.reject(error)));
+    if (!save) return;
     expect(await serializeJsonBytes(save)).toEqual(bytes);
 
     const target = jsonFormat.namedVariables!(save).find((v) => v.node.editable === 'number');
