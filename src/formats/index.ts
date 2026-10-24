@@ -30,13 +30,17 @@ export function notASaveReason(filePath: string): string | null {
 
 /**
  * The format of a save file. When several formats use its extension (.save:
- * Ren'Py and SugarCube), the file's content decides.
+ * Ren'Py and SugarCube), the file's content decides. When no format's
+ * extension matches at all (a game's own extension for an otherwise plain
+ * save), every format's `sniff` gets a chance at the content too, instead
+ * of listing every such extension here.
  */
 export async function detectFormat(filePath: string): Promise<SaveFormat | undefined> {
   const candidates = SAVE_FORMATS.filter((format) => format.matches(filePath));
-  if (candidates.length <= 1) return candidates[0];
+  if (candidates.length === 1) return candidates[0];
   const bytes = await readBinary(filePath);
-  return candidates.find((format) => format.sniff?.(bytes)) ?? candidates[0];
+  if (candidates.length > 1) return candidates.find((format) => format.sniff?.(bytes)) ?? candidates[0];
+  return SAVE_FORMATS.find((format) => format.sniff?.(bytes));
 }
 
 const allExtensions = () => [...new Set(SAVE_FORMATS.flatMap((format) => format.extensions))];
@@ -45,10 +49,16 @@ export function supportedExtensionsText(): string {
   return allExtensions().map((ext) => `.${ext}`).join(', ');
 }
 
-/** "All supported" first, then one entry per format. */
+/**
+ * "All supported" first, then one entry per format, then "All Files":
+ * detectFormat() can recognise a plain-JSON save under a game's own
+ * extension by its content, but the open dialog still filters by
+ * extension, so that file needs "All Files" picked to even show up.
+ */
 export function saveFileFilters(): FileFilter[] {
   return [
     { name: 'Supported Save Files', extensions: allExtensions() },
     ...SAVE_FORMATS.map((format) => ({ name: format.label, extensions: [...format.extensions] })),
+    { name: 'All Files', extensions: ['*'] },
   ];
 }

@@ -140,7 +140,11 @@ export interface SaveFormat<S = any> {
    * so the user can be told which file to open instead; null otherwise.
    */
   notASave?(filePath: string): string | null;
-  /** Whether the file's content is this format, when several formats share an extension (e.g. .save). */
+  /**
+   * Whether the file's content is this format: breaks the tie when several
+   * formats share an extension (e.g. .save), and is also the fallback when
+   * no format's extension matches the file at all (see detectFormat).
+   */
   sniff?(bytes: Uint8Array): boolean;
   /** `password` is for saves that are encrypted; such a read throws a PasswordRequiredError when it's missing or wrong. */
   read(filePath: string, options?: { password?: string }): Promise<LoadedSave<S>>;

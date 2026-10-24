@@ -3,7 +3,7 @@ import { readSetting, writeSetting } from '../../utils/storage';
 import { fileNameFromPath, hasExtension, pathSegments } from '../../utils/path';
 import { NamedVariable, SaveEditor, SaveFormat, TreeNode } from '../types';
 import { naninovelVariables } from './naninovel';
-import { JsonSave, parseJsonBytes, sameJsonData, serializeJsonBytes } from './save';
+import { JsonSave, looksLikeJsonBytes, parseJsonBytes, sameJsonData, serializeJsonBytes } from './save';
 import { jsonTree } from './tree';
 
 export const JSON_EXTENSIONS = ['json', 'es3', 'nson'] as const;
@@ -17,7 +17,8 @@ export function jsonGameName(filePath: string): string | null {
   parts.pop(); // slot1.json
   let folder = parts.pop();
   if (folder && SAVE_DIRS.includes(folder.toLowerCase())) folder = parts.pop() ?? folder;
-  return folder || fileNameFromPath(filePath).replace(/\.(json|es3|nson)$/i, '') || null;
+  // Strips whatever extension the file has (not just .json/.es3/.nson): detection isn't limited to those.
+  return folder || fileNameFromPath(filePath).replace(/\.[^./\\]+$/, '') || null;
 }
 
 const PASSWORDS_KEY = 'es3Passwords';
@@ -124,9 +125,12 @@ const jsonEditor: SaveEditor<JsonSave> = {
 export const jsonFormat: SaveFormat<JsonSave> = {
   id: 'json',
   label: 'JSON saves (Unity Easy Save, Naninovel)',
-  hint: 'Plain .json saves from games written in JavaScript, Unity .es3 saves (a password is asked for when they are encrypted), Unity saves with a game-specific hand-rolled encryption, and Naninovel .json/.nson saves.',
+  hint: 'Plain .json saves from games written in JavaScript, Unity .es3 saves (a password is asked for when they are encrypted), Unity saves with a game-specific hand-rolled encryption, Naninovel .json/.nson saves, and other plain-JSON saves under a game-specific extension (recognised by their content).',
   extensions: JSON_EXTENSIONS,
   matches: (filePath) => hasExtension(filePath, JSON_EXTENSIONS),
+  // A save kept as plain JSON text under some other extension (no compression, no encryption): this is the
+  // fallback format for that, tried only once no extension matches any format (see detectFormat).
+  sniff: looksLikeJsonBytes,
   pages: ['Variables', 'Advanced'],
 
   async read(filePath, options) {
