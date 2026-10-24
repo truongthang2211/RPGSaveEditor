@@ -1,4 +1,6 @@
+import { CipherKind, detectCipher, encryptFor } from './cipher';
 import { JDoc, parseDoc, sameNode } from './doc';
+import { candidatePasswords, PasswordRequiredError } from './es3crypto';
 
 /**
  * A JSON save: `save.json`, `slot1.json`..., the .es3 saves of Unity's Easy
@@ -18,6 +20,20 @@ export interface JsonSave {
   bom: boolean;
   /** gzip (Easy Save), raw DEFLATE, or zlib-wrapped DEFLATE (Naninovel). */
   compression?: 'gzip' | 'deflate' | 'zlib';
+  /** The password/key of an encrypted save (written back with it), and which scheme it's for. */
+  password?: string;
+  cipher?: CipherKind;
+  /** Whether the encrypted file had a BOM before its content (Easy Save's is raw binary, with no BOM of its own). */
+  outerBom?: boolean;
+}
+
+/** What is known when opening a file, to find the password of an encrypted one. */
+export interface OpenOptions {
+  /** The password to use, when the user gave one. Otherwise the usual ones are tried. */
+  password?: string;
+  filePath?: string;
+  /** Passwords that opened other saves before. */
+  remembered?: string[];
 }
 
 const BOM = '﻿';
@@ -30,7 +46,13 @@ export function looksLikeJsonSave(text: string): boolean {
     const value = JSON.parse(trimmed);
     return value !== null && typeof value === 'object';
   } catch {
-    return false;
+    // Not strict JSON: Easy Save's files have a few quirks that the document reader accepts.
+    try {
+      parseDoc(trimmed);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -62,8 +84,7 @@ async function pipe(data: Uint8Array, stream: CompressionStream | DecompressionS
 
 const isGzip = (bytes: Uint8Array) => bytes[0] === 0x1f && bytes[1] === 0x8b;
 
-const NOT_JSON =
-  "This file isn't JSON text. It may be encrypted (Unity's Easy Save can protect saves with a password, which the app can't read) or not a save.";
+const NOT_JSON = "This file isn't JSON text, so it is not a save the app can read.";
 
 const decodeUtf8 = (bytes: Uint8Array): string | null => {
   try {
@@ -78,7 +99,7 @@ const decodeUtf8 = (bytes: Uint8Array): string | null => {
  * raw or zlib-wrapped DEFLATE JSON (Naninovel). Anything else (encrypted
  * saves...) is refused.
  */
-export async function parseJsonBytes(bytes: Uint8Array): Promise<JsonSave> {
+async function parsePlainBytes(bytes: Uint8Array): Promise<JsonSave> {
   let compression: JsonSave['compression'];
   let text: string | null = null;
   if (isGzip(bytes)) {
@@ -111,9 +132,34 @@ export async function parseJsonBytes(bytes: Uint8Array): Promise<JsonSave> {
   return parseJsonSave(text, { bytes, compression });
 }
 
-/** The file's bytes: as read when nothing was edited, else the new text, compressed again if it was. */
+export async function parseJsonBytes(bytes: Uint8Array, { password, filePath, remembered }: OpenOptions = {}): Promise<JsonSave> {
+  try {
+    return await parsePlainBytes(bytes);
+  } catch (error) {
+    const cipher = detectCipher(bytes);
+    if (!cipher) throw error;
+    // Not plain JSON, but the shape of an encrypted save: try the password/key, or the usual ones.
+    for (const candidate of password !== undefined ? [password] : candidatePasswords(filePath, remembered)) {
+      const plain = await cipher.decrypt(candidate);
+      if (!plain) continue;
+      try {
+        return { ...(await parsePlainBytes(plain)), bytes, password: candidate, cipher: cipher.kind, outerBom: cipher.bom };
+      } catch {
+        // A wrong password/key can still end with valid padding by chance.
+      }
+    }
+    throw new PasswordRequiredError(password !== undefined);
+  }
+}
+
+/** The file's bytes: as read when nothing was edited, else the new text, compressed and encrypted again if it was. */
 export async function serializeJsonBytes(save: JsonSave): Promise<Uint8Array> {
   if (save.doc.text === save.loaded.text && save.bytes) return save.bytes;
+  const plain = await serializePlain(save);
+  return save.password !== undefined && save.cipher ? encryptFor(save.cipher, plain, save.password, !!save.outerBom) : plain;
+}
+
+async function serializePlain(save: JsonSave): Promise<Uint8Array> {
   const bytes = new TextEncoder().encode(serializeJsonSave(save));
   if (save.compression === 'gzip') return pipe(bytes, new CompressionStream('gzip'));
   if (save.compression === 'deflate') return pipe(bytes, new CompressionStream('deflate-raw'));

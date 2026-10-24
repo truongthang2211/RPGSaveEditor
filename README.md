@@ -20,7 +20,7 @@ every modern RPG Maker engine, Ren'Py visual novels, HTML games made with Twine/
 | Ren'Py 7 and 8 | `1-1-LT1.save`, `auto-1-LT1.save`, `quick-1-LT1.save`, … |
 | HTML games (Twine/SugarCube 2) | `<game name>-<date>.save`, from the game's **Saves → Save to Disk** |
 | Wolf RPG Editor (up to 3.279) | `SaveData01.sav`, `SaveData02.sav`, … |
-| JSON saves, Unity Easy Save, Naninovel | `save.json`, `slot1.json`… from games written in JavaScript; `SaveFile.es3` from Unity games (not encrypted); Naninovel `GameSave001`, `GameQuickSave001`, `GameAutoSave001`, `GlobalSave` as `.json` or `.nson` |
+| JSON saves, Unity Easy Save, Naninovel | `save.json`, `slot1.json`… from games written in JavaScript; `SaveFile.es3` from Unity games (password-protected ones too); Naninovel `GameSave001`, `GameQuickSave001`, `GameAutoSave001`, `GlobalSave` as `.json` or `.nson` |
 
 Common uses: give yourself max gold or money, 99 of every item, max level and stats, skip a grind by turning on a
 story switch, or change affection points and flags in a visual novel.
@@ -40,8 +40,8 @@ story switch, or change affection points and flags in a visual novel.
 - **Items, weapons and armors**: change how many of each you own, with names read from the game's database.
 - **Switches and variables**: turn switches on/off and change variables, with their names from the game.
 - **Ren'Py variables**: every game variable (affection points, flags, money, names…) by name, with its type kept.
-- **JSON saves, Unity Easy Save and Naninovel**: any plain `.json` save, Unity's Easy Save `.es3` saves when they are
-  not encrypted (gzip-compressed ones too), and Naninovel `.json` / `.nson` saves. Values are on the Variables page by
+- **JSON saves, Unity Easy Save and Naninovel**: any plain `.json` save, Unity's Easy Save `.es3` saves (gzip-compressed and
+  password-protected ones too), and Naninovel `.json` / `.nson` saves. Values are on the Variables page by
   name and the whole file is in Advanced, including JSON kept inside strings. An edit changes only that value in the
   file: indentation, `1.0` and everything else stay as they were.
 - **HTML game (Twine/SugarCube) variables**: every story variable (`$money`, `$player.hp`…) by name, including
@@ -152,7 +152,16 @@ Only the values you change are written: the file is edited in place, so indentat
 large for a double stay exactly as they were.
 
 Unity games that use Easy Save keep `.es3` files, which are JSON too. If the game turned on Easy Save's encryption, the
-file can't be opened (it needs the game's password); compression is handled.
+app tries the usual passwords and the names in the file's path by itself. If the save sits inside the game's own
+folder (some games, especially cracked ones, do this instead of the usual per-user folder), it also looks there for
+the password on its own, without asking which folder; "Search more thoroughly…" tries harder in the same folder if
+that quick pass doesn't find it. Otherwise it asks for the password (remembered afterwards, and "Find in game files…"
+looks for it in a folder you pick). The save is encrypted again when written. Compression is handled.
+
+Some Unity games roll their own encryption instead of Easy Save's: a fixed key written into the game's own code (not
+a password a player enters), often AES in ECB mode with the save written out as Base64 text. The app recognises this
+shape too and looks for the key the same way it looks for an Easy Save password — by reading the game's files, not by
+guessing a player-chosen password.
 
 Games made with Naninovel (a visual novel engine for Unity) save `GameSave001.json`, or `.nson` when they compress it.
 Their state is JSON inside strings; the app opens those strings, so the story's own variables (affection, flags,
