@@ -9,6 +9,7 @@ import { askPassword, showProgress } from '../utils/dialogs';
 import { selectFile, selectFolder } from '../utils/fileUtils';
 import { fileNameFromPath } from '../utils/path';
 import { rememberRecentFile } from '../utils/recentFiles';
+import { clearRemembered } from './useRemembered';
 import { maybeAskForSupport } from '../components/SupportPrompt';
 
 const toastOptions: ToastOptions = {
@@ -21,6 +22,19 @@ const toastOptions: ToastOptions = {
 const successNotify = (text: string) => toast.success(text, { ...toastOptions, autoClose: 1000 });
 const errorNotify = (text: string) => toast.error(text, { ...toastOptions, autoClose: 4000 });
 const warningNotify = (text: string) => toast.warn(text, { ...toastOptions, autoClose: 4000 });
+
+/**
+ * Whether a newly opened save is of the same game as the one before it, close
+ * enough to compare against ("Different from old save", "Old"/"GAP" columns):
+ * the same format too, not just a matching `gameName` — that's only a guess
+ * from the file's path, so two different games (or formats) can land on the
+ * same name (e.g. two unrelated saves picked from the same folder); comparing
+ * across formats crashes a page outright, since each format's functions
+ * assume their own save shape, not just wrong-looking values within one format.
+ */
+export function sameGameAs(format: SaveFormat, gameName: string, prevFormat: SaveFormat | undefined, prevGameName: string | undefined): boolean {
+  return format === prevFormat && gameName === prevGameName;
+}
 
 async function formatFor(filePath: string): Promise<SaveFormat> {
   const format = await detectFormat(filePath);
@@ -169,12 +183,14 @@ export const useOpenPath = () => {
       }
 
       rememberRecentFile(filePath);
+      // A page's remembered state (search, selection, expanded nodes...) is node references into the
+      // previous file's own tree; applied to this one, they can be meaningless or outright crash a page.
+      clearRemembered();
 
       setContent((prev) => ({
         ...prev,
         ...loaded,
-        // Keep the previous save for comparison only when it's the same game.
-        oldSaveData: gameName === prev.gameName ? prev.originSaveData : undefined,
+        oldSaveData: sameGameAs(format, gameName, prev.format, prev.gameName) ? prev.originSaveData : undefined,
         format,
         database,
         filePath,
