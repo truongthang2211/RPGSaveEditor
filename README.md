@@ -20,7 +20,7 @@ every modern RPG Maker engine, Ren'Py visual novels, HTML games made with Twine/
 | Ren'Py 7 and 8 | `1-1-LT1.save`, `auto-1-LT1.save`, `quick-1-LT1.save`, … |
 | HTML games (Twine/SugarCube 2) | `<game name>-<date>.save`, from the game's **Saves → Save to Disk** |
 | Wolf RPG Editor (up to 3.279) | `SaveData01.sav`, `SaveData02.sav`, … |
-| JSON saves, Unity Easy Save, Naninovel | `save.json`, `slot1.json`… from games written in JavaScript; `SaveFile.es3` from Unity games (password-protected ones too); Naninovel `GameSave001`, `GameQuickSave001`, `GameAutoSave001`, `GlobalSave` as `.json` or `.nson` |
+| JSON saves, Unity Easy Save, Naninovel | `save.json`, `slot1.json`… from games written in JavaScript; `SaveFile.es3` from Unity games (password-protected ones too); Naninovel `GameSave001`, `GameQuickSave001`, `GameAutoSave001`, `GlobalSave` as `.json` or `.nson`; a plain-JSON save under a game's own extension opens too, by its content |
 
 Common uses: give yourself max gold or money, 99 of every item, max level and stats, skip a grind by turning on a
 story switch, or change affection points and flags in a visual novel.

@@ -534,7 +534,7 @@ describe('Naninovel saves', () => {
 
 // Real JSON saves dropped into save_files/ (git-ignored): .json and Naninovel's .nson.
 const dir = join(process.cwd(), 'save_files');
-const realSaves = existsSync(dir) ? readdirSync(dir).filter((f) => /\.(json|nson|es3)$/i.test(f)) : [];
+const realSaves = existsSync(dir) ? readdirSync(dir).filter((f) => /\.(json|nson|es3|mdrgslot)$/i.test(f)) : [];
 
 describe.skipIf(realSaves.length === 0)('real JSON saves', () => {
   it.each(realSaves)('%s: writes back unchanged, and an edit changes only that value', async (file) => {

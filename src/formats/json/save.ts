@@ -95,6 +95,18 @@ const decodeUtf8 = (bytes: Uint8Array): string | null => {
 };
 
 /**
+ * Whether `bytes` are a plain-JSON save: used to recognise one under an
+ * extension none of the formats list (some games use their own, e.g. a
+ * visual novel's `.mdrgslot`), so that doesn't need listing here either.
+ * Compressed or encrypted saves aren't caught by this; their own extension
+ * is still needed.
+ */
+export const looksLikeJsonBytes = (bytes: Uint8Array): boolean => {
+  const text = decodeUtf8(bytes);
+  return text !== null && looksLikeJsonSave(text);
+};
+
+/**
  * Opens the bytes of a file: JSON text, gzip-compressed JSON (Easy Save), or
  * raw or zlib-wrapped DEFLATE JSON (Naninovel). Anything else (encrypted
  * saves...) is refused.
