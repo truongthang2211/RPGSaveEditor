@@ -115,6 +115,27 @@ jobs:
           releaseDraft: false
           prerelease: false
 
+  publish-itch:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download Windows installer
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download ${{ github.ref_name }} --repo ${{ github.repository }} --pattern '*setup.exe' --dir dist
+
+      - name: Push build to itch.io
+        uses: josephbmanley/butler-publish-itchio-action@master
+        env:
+          BUTLER_CREDENTIALS: ${{ secrets.ITCH_API_KEY }}
+          CHANNEL: windows
+          ITCH_GAME: rpg-save-editor
+          ITCH_USER: truongthang2211
+          PACKAGE: dist
+          VERSION: ${{ github.ref_name }}
+
   update-latest-json:
     needs: release
     runs-on: ubuntu-latest
