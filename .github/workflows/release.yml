@@ -4,9 +4,15 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to (re-)push to itch.io, e.g. v1.7.1 (does not build or create a release)'
+        required: true
 
 jobs:
   release:
+    if: github.event_name == 'push'
     permissions:
       contents: write
     strategy:
@@ -117,14 +123,17 @@ jobs:
 
   publish-itch:
     needs: release
+    if: always() && (needs.release.result == 'success' || needs.release.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
       - name: Download Windows installer
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release download ${{ github.ref_name }} --repo ${{ github.repository }} --pattern '*setup.exe' --dir dist
+        run: gh release download "$RELEASE_TAG" --repo ${{ github.repository }} --pattern '*setup.exe' --dir dist
 
       - name: Push build to itch.io
         uses: josephbmanley/butler-publish-itchio-action@master
@@ -134,7 +143,7 @@ jobs:
           ITCH_GAME: rpg-save-editor
           ITCH_USER: truongthang2211
           PACKAGE: dist
-          VERSION: ${{ github.ref_name }}
+          VERSION: ${{ env.RELEASE_TAG }}
 
   update-latest-json:
     needs: release
