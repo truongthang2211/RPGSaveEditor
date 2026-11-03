@@ -3,6 +3,9 @@
  * the text itself: nothing else in the file changes (indentation, key order,
  * `1.0` versus `1`, escapes, numbers too large for a double).
  *
+ * Easy Save's `{ "__type" : "float"1 }` (a value right after its type) is read as
+ * `{ "__type": "float", "value": 1 }`.
+ *
  * Many Unity games (Naninovel...) keep JSON inside JSON strings. A string that
  * holds a JSON object or list is parsed too (`embedded`), and an edit inside it
  * is written back into the string.
@@ -76,6 +79,9 @@ export function parseDoc(text: string, depth = 0): JDoc {
         skip();
         expect(':');
         members.push({ key, value: value() });
+        skip();
+        // Easy Save writes the items of a list of objects as `{ "__type" : "float"1 }`: the value follows its type with no key.
+        if (key === '__type' && text[pos] !== ',' && text[pos] !== '}') members.push({ key: 'value', value: value() });
         skip();
         if (text[pos] === ',') {
           pos++;

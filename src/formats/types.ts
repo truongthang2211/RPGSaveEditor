@@ -140,9 +140,14 @@ export interface SaveFormat<S = any> {
    * so the user can be told which file to open instead; null otherwise.
    */
   notASave?(filePath: string): string | null;
-  /** Whether the file's content is this format, when several formats share an extension (e.g. .save). */
+  /**
+   * Whether the file's content is this format: breaks the tie when several
+   * formats share an extension (e.g. .save), and is also the fallback when
+   * no format's extension matches the file at all (see detectFormat).
+   */
   sniff?(bytes: Uint8Array): boolean;
-  read(filePath: string): Promise<LoadedSave<S>>;
+  /** `password` is for saves that are encrypted; such a read throws a PasswordRequiredError when it's missing or wrong. */
+  read(filePath: string, options?: { password?: string }): Promise<LoadedSave<S>>;
   write(filePath: string, save: LoadedSave<S>): Promise<void>;
   loadDatabase(saveFilePath: string): Promise<DatabaseResult>;
   /** Game folder name derived from the save path, or null if it can't be determined. */

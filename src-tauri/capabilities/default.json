@@ -12,6 +12,8 @@
     "fs:default",
     "fs:allow-app-write",
     "fs:allow-app-read",
+    "fs:allow-read-dir",
+    "fs:allow-read-file",
     {
       "identifier": "fs:scope",
       "allow": [

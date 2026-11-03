@@ -1,5 +1,5 @@
 import { open } from '@tauri-apps/plugin-dialog';
-import { exists, open as openFile, readFile, readTextFile, SeekMode, writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, open as openFile, readDir, readFile, readTextFile, SeekMode, writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
 
 export interface FileFilter {
   name: string;
@@ -10,6 +10,21 @@ export interface FileFilter {
 export async function selectFile(filters: FileFilter[]): Promise<string | null> {
   const filePath = await open({ multiple: false, filters });
   return filePath as string | null;
+}
+
+/** Opens the native "choose folder" dialog; resolves to the chosen path or null if cancelled. */
+export async function selectFolder(): Promise<string | null> {
+  const folder = await open({ directory: true, multiple: false });
+  return folder as string | null;
+}
+
+/** The names of the entries in a folder (empty when it can't be read). */
+export async function listDir(folder: string): Promise<{ name: string; isDirectory: boolean }[]> {
+  try {
+    return (await readDir(folder)).map(({ name, isDirectory }) => ({ name, isDirectory }));
+  } catch {
+    return [];
+  }
 }
 
 export const readText = (filePath: string): Promise<string> => readTextFile(filePath);
