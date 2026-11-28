@@ -123,6 +123,16 @@ describe('VX Ace editor (synthetic save)', () => {
     expect(editor.getGold(reread(editor.setGold(save, 7)))).toBe(7);
   });
 
+  it('edits the contents, not a copy of the party a script put in the header for the load screen', () => {
+    const [, contents] = makeSave().dumps;
+    const header = symHash({ party: obj('Game_Party', { '@gold': 1, '@items': intHash([]) }) });
+    const save = fromDumps([header, contents]);
+    expect(editor.getGold(save)).toBe(50);
+    const back = reread(editor.setGold(save, 7));
+    expect(editor.getGold(back)).toBe(7);
+    expect(getField(getSymbolKey(back.dumps[0], 'party'), '@gold')).toBe(1); // header copy untouched
+  });
+
   it('reports a clear error for saves missing expected data', () => {
     const save = fromDumps([symHash({}), symHash({})]);
     expect(editor.getGold(save)).toBe(0);
