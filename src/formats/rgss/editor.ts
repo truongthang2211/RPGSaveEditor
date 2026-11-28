@@ -39,10 +39,12 @@ const INVENTORY_FIELDS: Record<InventoryKind, string> = {
 /**
  * VX Ace: DataManager.make_save_contents -> contents[:party] etc. Contents is
  * normally the second dump, but scripts may write extra dumps (e.g. a
- * thumbnail between header and contents), so every dump is searched.
+ * thumbnail between header and contents), so every dump is searched, last
+ * first: contents is written after the header, and some save-menu scripts
+ * copy :party/:actors into the header too, for the load screen only.
  */
 export const locateInContents = (dumps: MValue[], part: RgssPart): MObject | undefined => {
-  for (const dump of dumps ?? []) {
+  for (const dump of [...(dumps ?? [])].reverse()) {
     const value = getSymbolKey(dump, part);
     if (isNode(value, 'object')) return value;
   }
